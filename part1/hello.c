@@ -1,5 +1,6 @@
-#include<stdio.h>
+#include <sys/syscall.h>
+#include <unistd.h>
 int main (int argc, char *agrv[]){
-    printf("hello, world\n");
+    syscall(SYS_write,1,"hello, world\n",14);
     return 0;
 }
