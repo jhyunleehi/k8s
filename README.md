@@ -4,7 +4,7 @@
 
 * 격리 기술
 
-![컨테이너 역사 - CHROOT, Docker, KUBERNETES , OPENSHIFT](img\Container-innovation)
+![컨테이너 역사 - CHROOT, Docker, KUBERNETES , OPENSHIFT](img/Container-innovation)
 
 
 
@@ -600,7 +600,6 @@ root@docker1:~/overlayfs# tree
 │       └── okman
 └── work
     └── work
-
 
 ```
 
