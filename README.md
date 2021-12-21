@@ -1822,3 +1822,144 @@ root@docker1:~# ip a
        valid_lft forever preferred_lft forever
 ```
 
+
+
+#### route
+
+```
+root@docker1:~# ip route
+default via 192.168.137.1 dev enp0s3 proto static
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1
+192.168.137.0/24 dev enp0s3 proto kernel scope link src 192.168.137.101
+root@docker1:~# netstat -nr
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+0.0.0.0         192.168.137.1   0.0.0.0         UG        0 0          0 enp0s3
+172.17.0.0      0.0.0.0         255.255.0.0     U         0 0          0 docker0
+192.168.137.0   0.0.0.0         255.255.255.0   U         0 0          0 enp0s3
+
+```
+
+
+
+## docker images
+
+### docker image
+
+```
+root@docker1:~# docker images -a
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+nginx        latest    f6987c8d6ed5   5 hours ago    141MB
+ubuntu       latest    ba6acccedd29   2 months ago   72.8MB
+centos       latest    5d0da3dc9764   3 months ago   231MB
+```
+
+
+
+```
+root@docker1:~# docker image ls -a
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+nginx        latest    f6987c8d6ed5   5 hours ago    141MB
+ubuntu       latest    ba6acccedd29   2 months ago   72.8MB
+centos       latest    5d0da3dc9764   3 months ago   231MB
+```
+
+
+
+#### inspect
+
+```
+root@docker1:~# docker image inspect centos
+[
+    {
+        "Id": "sha256:5d0da3dc976460b72c77d94c8a1ad043720b0416bfc16c52c45d4847e53fadb6",
+        "RepoTags": [
+            "centos:latest"
+        ],
+        "RepoDigests": [
+            "centos@sha256:a27fd8080b517143cbbbab9dfb7c8571c40d67d534bbdee55bd6c473f432b177"
+        ],
+        "Parent": "",
+        "Comment": "",
+        "Created": "2021-09-15T18:20:05.184694267Z",
+        "Container": "9bf8a9e2ddff4c0d76a587c40239679f29c863a967f23abf7a5babb6c2121bf1",
+        "ContainerConfig": {
+            "Hostname": "9bf8a9e2ddff",
+            "Domainname": "",
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": ["/bin/sh","-c","#(nop) ","CMD [\"/bin/bash\"]"
+            ],
+            "Image": "sha256:f5b050f177fd426be8fe998a8ecf3fb1858d7e26dff4080b29a327d1bd5ba422",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+            }
+        },
+        "DockerVersion": "20.10.7",
+        "Author": "",
+        "Config": {
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+            ],
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "Image": "sha256:f5b050f177fd426be8fe998a8ecf3fb1858d7e26dff4080b29a327d1bd5ba422",
+            "Volumes": null,
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": {
+                "org.label-schema.build-date": "20210915",
+                "org.label-schema.license": "GPLv2",
+                "org.label-schema.name": "CentOS Base Image",
+                "org.label-schema.schema-version": "1.0",
+                "org.label-schema.vendor": "CentOS"
+            }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 231268856,
+        "VirtualSize": 231268856,
+        "GraphDriver": {
+            "Data": {
+                "MergedDir": "/var/lib/docker/overlay2/0c6c5c7261012598557885a41025c1a2d83062aad14facb410d4974bd4fa3a71/merged",
+                "UpperDir": "/var/lib/docker/overlay2/0c6c5c7261012598557885a41025c1a2d83062aad14facb410d4974bd4fa3a71/diff",
+                "WorkDir": "/var/lib/docker/overlay2/0c6c5c7261012598557885a41025c1a2d83062aad14facb410d4974bd4fa3a71/work"
+            },
+            "Name": "overlay2"
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:74ddd0ec08fa43d09f32636ba91a0a3053b02cb4627c35051aff89f853606b59"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "0001-01-01T00:00:00Z"
+        }
+    }
+]
+```
+
+
+
+
+
+#### docker  pull <image:tag>
+
+```
+
+root@docker1:~# docker image ls -a
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+nginx        latest    f6987c8d6ed5   6 hours ago    141MB
+mariadb      latest    e2278f24ac88   5 weeks ago    410MB
+ubuntu       latest    ba6acccedd29   2 months ago   72.8MB
+centos       7         eeb6ee3f44bd   3 months ago   204MB
+centos       latest    5d0da3dc9764   3 months ago   231MB
+```
+
