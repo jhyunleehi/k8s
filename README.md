@@ -1,4 +1,8 @@
-# K8S
+
+
+
+
+# Cloud Native 이해
 
 ## 컨테이너 기반 기술
 
@@ -469,7 +473,9 @@ KiB Swap:  2017276 total,  2017008 free,      268 used.  2644476 avail Mem
 
 #### 1. iptable 개념
 
-iptables는 리눅스상에서 방화벽을 설정하는 도구로서 커널 2.4 이전 버전에서 사용되던 ipchains를 대신하는 방화벽 도구이다. iptables는 커널상에서의 netfilter 패킷필터링 기능을 사용자 공간에서 제어하는 수준으로 사용할 수 있다. 
+iptables는 리눅스상에서 방화벽을 설정하는 도구로서 커널 2.4 이전 버전에서 사용되던 ipchains를 대신하는 방화벽 도구이다. 
+
+iptables는 커널상에서의 netfilter 패킷필터링 기능을 사용자 공간에서 제어하는 수준으로 사용할 수 있다. 
 
 **패킷필터링이란** 지나가는 패킷의 해더를 보고 그 전체 패킷의 운명을 결정하는 것을 말한다. 일반적으로 패킷은 해더와 데이터를 가진다.
 해더에 필터링할 정보인 출발지IP:PORT, 도착지IP:PORT, checksum, 프로토콜 옵션등을 가지며 데이터는 각각의 전송데이터가 들어간다. 
@@ -1119,7 +1125,6 @@ exit
 * 왜냐 하면 기존에 ping process가 UP 되어 있기 때문이다.
 * 왠만하면 `docker exec  -it <name> /bin/bash`  로 접속하면 편리하다.
 * `docker attach  <name>` 으로 접속하는 것 보다는 좀더 덜 스트레스 받는 다. 빠져 나올때 container 상태가 exit되지 않기 때문에...
-* 
 
 
 
@@ -1457,9 +1462,36 @@ overlay                            19475088 7606716  10856048  42% /var/lib/dock
 
 ```
 
+#### 8. docker logs
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker logs 39355bf67c8a
+PING localhost (127.0.0.1) 56(84) bytes of data.
+64 bytes from localhost (127.0.0.1): icmp_seq=1 ttl=64 time=0.010 ms
+64 bytes from localhost (127.0.0.1): icmp_seq=2 ttl=64 time=0.018 ms
+64 bytes from localhost (127.0.0.1): icmp_seq=3 ttl=64 time=0.051 ms
+
+--- localhost ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2044ms
+rtt min/avg/max/mdev = 0.010/0.026/0.051/0.018 ms
+```
+
 
 
 ## Docker volume
+
+- 컨테이너 내에서 생성 변경된 모든 파일은 Read-Write 가능한 Container layer에 저장된다.
+- 도커는 Copy- on Write 방식으로 파일을 관리한다.
+- 파일 또는 디렉토리를 읽기 만 할때는 기존 파일을 참조하고 수정해야 할 경우에만 파일을 컨테이너 레이어로 올려서 수정한다.
+- 필요한 경우에만 복사가 되므로 데이터 중복이 없고 효율적으로 사용이 가능하다.
+- 컨테이너의 Read-Write Layer는 호스트에 위치 하기 때문에 데이터를 다른 호스트에 이전하기 어려움
+- 컨테이너의 파일 시스템을 관리하기 위해서는 리눅스 커널이 지원하는 sTorage Driver를 통해서 UnionFS를 지원한다. 
+
+
+
+![RW Layers](img/container-unionfs-rw-layers.png)
+
+
 
 ### bind mount
 
@@ -1696,6 +1728,8 @@ total 0
 
 
 ## Docker Network
+
+왜 이렇게 iptables에 목을 메는가?
 
 #### veth**@if
 
@@ -1961,5 +1995,1106 @@ mariadb      latest    e2278f24ac88   5 weeks ago    410MB
 ubuntu       latest    ba6acccedd29   2 months ago   72.8MB
 centos       7         eeb6ee3f44bd   3 months ago   204MB
 centos       latest    5d0da3dc9764   3 months ago   231MB
+```
+
+
+
+#### docker push
+
+* tag는 실제로 만드는 것은 아니고 alias를 만드는 것이다.
+
+```
+root@docker1:~# docker tag nginx  jhyunleehi/nginx:1.0
+root@docker1:~# docker images
+REPOSITORY         TAG       IMAGE ID       CREATED        SIZE
+jhyunleehi/nginx   1.0       f6987c8d6ed5   22 hours ago   141MB
+nginx              latest    f6987c8d6ed5   22 hours ago   141MB
+mariadb            latest    e2278f24ac88   5 weeks ago    410MB
+ubuntu             latest    ba6acccedd29   2 months ago   72.8MB
+centos             7         eeb6ee3f44bd   3 months ago   204MB
+centos             latest    5d0da3dc9764   3 months ago   231MB
+
+root@docker1:~# docker image push  jhyunleehi/nginx:1.0
+The push refers to repository [docker.io/jhyunleehi/nginx]
+51a4ac025eb4: Mounted from library/nginx
+4ded77d16e76: Mounted from library/nginx
+32359d2cd6cd: Mounted from library/nginx
+4270b63061e5: Mounted from library/nginx
+5f5f780b24de: Mounted from library/nginx
+2edcec3590a4: Mounted from library/nginx
+
+```
+
+
+
+### image build
+
+![TSM - Docker, Build and Ship](img/2.png)
+
+
+
+* 기존 컨테이너 이미지 확인: netbr00
+
+```
+Every 0.5s: docker ps -a                                                                                       docker1: Wed Dec 22 01:28:47 2021
+
+CONTAINER ID   IMAGE     COMMAND                  CREATED        STATUS        PORTS                                   NAMES
+8cebe0b5598d   nginx     "/docker-entrypoint.…"   18 hours ago   Up 18 hours   0.0.0.0:8080->80/tcp, :::8080->80/tcp   netbr00
+
+```
+
+* netbr 컨테이너 실행 상태를 이미지로 저장
+
+```
+root@docker1:~# docker commit -a "jhyunlee" -m  "customized image by jhyunlee"  netbr00   jhyunleehi/newnginx
+sha256:bb88a17e4bc172988021176f56ac9aae20198b55c4957212b5897357f78e507a
+
+
+root@docker1:~# watch -d -n 1 "docker images"
+Every 1.0s: docker images                                                                                      docker1: Wed Dec 22 01:29:12 2021
+
+REPOSITORY            TAG       IMAGE ID       CREATED          SIZE
+jhyunleehi/newnginx   latest    bb88a17e4bc1   33 seconds ago   141MB
+jhyunleehi/nginx      1.0       f6987c8d6ed5   22 hours ago     141MB
+nginx                 latest    f6987c8d6ed5   22 hours ago     141MB
+mariadb               latest    e2278f24ac88   6 weeks ago      410MB
+ubuntu                latest    ba6acccedd29   2 months ago     72.8MB
+centos                7         eeb6ee3f44bd   3 months ago     204MB
+centos                latest    5d0da3dc9764   3 months ago     231MB
+```
+
+
+
+
+
+## Docker Image Build 
+
+### Dockerfile
+
+#### docker build -t  dockerfile .
+
+* sending build context to Docker daemon....
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile
+FROM centos:centos7
+root@docker1:~/docker_lab/dockerfile_dir#
+root@docker1:~/docker_lab/dockerfile_dir#
+
+
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t testimage .
+Sending build context to Docker daemon  200.2kB  <<==== 
+Step 1/1 : FROM centos:centos7
+centos7: Pulling from library/centos
+Digest: sha256:9d4bcbbb213dfd745b58be38b13b996ebb5ac315fe75711bd618426a630e0987
+Status: Downloaded newer image for centos:centos7
+ ---> eeb6ee3f44bd
+Successfully built eeb6ee3f44bd
+Successfully tagged testimage:latest
+
+```
+
+
+
+#### webserver build
+
+* Docker file 
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.1
+FROM ubuntu
+RUN  apt-get update && apt-get install -y -q nginx
+COPY index.html /var/www/html/
+CMD ["nginx", "-g", "daemon off; " ]
+```
+
+* 실행 결과
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t web00:1.0 -f Dockerfile.1 .
+Sending build context to Docker daemon  200.2kB
+Step 1/4 : FROM ubuntu
+ ---> ba6acccedd29
+Step 2/4 : RUN  apt-get update && apt-get install -y -q nginx
+ ---> Running in a1ef90cdfe5d
+Get:1 http://security.ubuntu.com/ubuntu focal-security InRelease [114 kB]
+Get:2 http://archive.ubuntu.com/ubuntu focal InRelease [265 kB]
+Get:3 http://security.ubuntu.com/ubuntu focal-security/multiverse amd64 Packages [30.1 kB]
+Fetched 20.1 MB in 31s (656 kB/s)
+Reading package lists...
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  fontconfig-config fonts-dejavu-core iproute2 libatm1 libbsd0 libcap2
+  libcap2-bin libelf1 libexpat1 libfontconfig1 libfreetype6 libgd3 libicu66
+  libjbig0 libjpeg-turbo8 libjpeg8 libmnl0 libnginx-mod-http-image-filter
+  libnginx-mod-http-xslt-filter libnginx-mod-mail libnginx-mod-stream
+  libpam-cap libpng16-16 libssl1.1 libtiff5 libwebp6 libx11-6 libx11-data
+  libxau6 libxcb1 libxdmcp6 libxml2 libxpm4 libxslt1.1 libxtables12
+  nginx-common nginx-core tzdata ucf
+Suggested packages:
+  iproute2-doc libgd-tools fcgiwrap nginx-doc ssl-cert
+Removing intermediate container a1ef90cdfe5d
+ ---> 66d3b597295f
+Step 3/4 : COPY index.html /var/www/html/
+ ---> b383d7953b3c
+Step 4/4 : CMD ["nginx", "-g", "daemon off; " ]
+ ---> Running in a70340effac8
+Removing intermediate container a70340effac8
+ ---> 0bdca12ab97b
+Successfully built 0bdca12ab97b
+Successfully tagged web00:1.0
+root@docker1:~/docker_lab/dockerfile_dir#
+
+```
+
+
+
+#### RUN
+
+* RUN은 이미지 생성 단계에서 여러번 수행해도 된다.
+
+```sh
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.2
+FROM ubuntu
+RUN echo "Shell: HOME Dir -->  $HOME "
+RUN ["echo", "EXEC: HOme dir --> $HOME" ]
+RUN ["/bin/bash" , "-c", "echo EXEC: HOME dir : $HOME" ]
+
+
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t echo00 -f Dockerfile.2 .
+Sending build context to Docker daemon  200.2kB
+Step 1/4 : FROM ubuntu
+ ---> ba6acccedd29
+Step 2/4 : RUN echo "Shell: HOME Dir -->  $HOME "
+ ---> Running in 7efaa50e63e1
+Shell: HOME Dir -->  /root
+Removing intermediate container 7efaa50e63e1
+ ---> a6e1605460aa
+Step 3/4 : RUN ["echo", "EXEC: HOme dir --> $HOME" ]
+ ---> Running in 63eafbb2e8cb
+EXEC: HOme dir --> $HOME
+Removing intermediate container 63eafbb2e8cb
+ ---> 3f467792224a
+Step 4/4 : RUN ["/bin/bash" , "-c", "echo EXEC: HOME dir : $HOME" ]
+ ---> Running in 25703e188bb0
+EXEC: HOME dir : /root
+Removing intermediate container 25703e188bb0
+ ---> 13489aa3b505
+Successfully built 13489aa3b505
+Successfully tagged echo00:latest
+
+```
+
+
+
+####  ENTRYPOINT
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.3
+FROM centos:7
+
+ENTRYPOINT ["/bin/ping", "localhost" ]
+CMD ["-c","3" ]
+root@docker1:~/docker_lab/dockerfile_dir#
+root@docker1:~/docker_lab/dockerfile_dir#
+root@docker1:~/docker_lab/dockerfile_dir#
+root@docker1:~/docker_lab/dockerfile_dir#
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t ping00 -f Dockerfile.3 .
+Sending build context to Docker daemon  200.2kB
+Step 1/3 : FROM centos:7
+ ---> eeb6ee3f44bd
+Step 2/3 : ENTRYPOINT ["/bin/ping", "localhost" ]
+ ---> Running in 4eef49e681d9
+Removing intermediate container 4eef49e681d9
+ ---> b6afd1a72a75
+Step 3/3 : CMD ["-c","3" ]
+ ---> Running in b34e20199fcd
+Removing intermediate container b34e20199fcd
+ ---> a0156564dae6
+Successfully built a0156564dae6
+Successfully tagged ping00:latest
+
+root@docker1:~/docker_lab/dockerfile_dir# docker run -it ping00
+PING localhost (127.0.0.1) 56(84) bytes of data.
+64 bytes from localhost (127.0.0.1): icmp_seq=1 ttl=64 time=0.010 ms
+64 bytes from localhost (127.0.0.1): icmp_seq=2 ttl=64 time=0.018 ms
+64 bytes from localhost (127.0.0.1): icmp_seq=3 ttl=64 time=0.051 ms
+
+--- localhost ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2044ms
+rtt min/avg/max/mdev = 0.010/0.026/0.051/0.018 ms
+
+
+```
+
+
+
+#### ENV
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t env00 -f Dockerfile.7 .
+Sending build context to Docker daemon  200.2kB
+Step 1/2 : FROM centos:7
+ ---> eeb6ee3f44bd
+Step 2/2 : ENV myName="Yu Mi"     myOrder=Pizza\ Pasta\ Salad     myNumber=1004
+ ---> Running in cbb2bc82bddc
+Removing intermediate container cbb2bc82bddc
+ ---> 6cbfe9b29b9d
+Successfully built 6cbfe9b29b9d
+Successfully tagged env00:latest
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.7
+FROM centos:7
+### ENV myName “Yu Mi”
+# ENV myOrder Pizza Pasta Salad
+# ENV myNumber 1004
+#
+ENV myName="Yu Mi" \
+    myOrder=Pizza\ Pasta\ Salad \
+    myNumber=1004
+
+#CMD ["/bin/bash"]
+```
+
+
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker run -it env00
+[root@dc50f4bb201d /]# env
+myName=Yu Mi
+myOrder=Pizza Pasta Salad
+myNumber=1004
+
+```
+
+
+
+#### EXPOSE
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.11
+FROM nginx
+EXPOSE 443
+
+root@docker1:~/docker_lab/dockerfile_dir# docker build  -t port00 -f Dockerfile.11 .
+Sending build context to Docker daemon  200.2kB
+Step 1/2 : FROM nginx
+ ---> f6987c8d6ed5
+Step 2/2 : EXPOSE 443
+ ---> Running in 581d0a2bacc0
+Removing intermediate container 581d0a2bacc0
+ ---> c3a06f745592
+Successfully built c3a06f745592
+Successfully tagged port00:latest
+
+
+root@docker1:~/docker_lab/dockerfile_dir# docker run -d  -p 8080:443 --name myport port00
+6f264789a34f8b839cf8113e1e1651a5c3ba7c85dec6ccd0ee016fd77544d026
+
+Every 0.5s: docker ps -a                                                                                       docker1: Wed Dec 22 02:45:49 2021
+
+# docker ps -a 
+CONTAINER ID   IMAGE     COMMAND                  CREATED              STATUS            PORTS     NAMES
+6f264789a34f   port00    "/docker-entrypoint.…"   About a minute ago   Up About a minute  80/tcp, 0.0.0.0:8080->443/tcp, :::8080->443/tcp   myport
+```
+
+
+
+#### ADD
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.13
+FROM ubuntu
+ADD host.html  /first_dir/
+ADD host.html  /first_dir/secondfile
+ADD https://github.com/kubernetes/kubernetes/blob/master/LICENSE /first_dir/   <=== 원격지 파일로 넣을 수 있다.
+ADD webdata.tar /first_dir/
+```
+
+
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t add00 -f Dockerfile.13  .
+Sending build context to Docker daemon  200.2kB
+Step 1/5 : FROM ubuntu
+ ---> ba6acccedd29
+Step 2/5 : ADD host.html  /first_dir/
+ ---> 480871858370
+Step 3/5 : ADD host.html  /first_dir/secondfile
+ ---> 22905d6d9ec3
+Step 4/5 : ADD https://github.com/kubernetes/kubernetes/blob/master/LICENSE /first_dir/
+Downloading  223.4kB
+
+ ---> ccac9b7f546e
+Step 5/5 : ADD webdata.tar /first_dir/
+ ---> 366a98998fd6
+Successfully built 366a98998fd6
+Successfully tagged add00:latest
+```
+
+
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:5a:a9:d9 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.137.101/24 brd 192.168.137.255 scope global enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a00:27ff:fe5a:a9d9/64 scope link
+       valid_lft forever preferred_lft forever
+3: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether 02:42:26:07:e8:04 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:26ff:fe07:e804/64 scope link
+       valid_lft forever preferred_lft forever
+47: veth118a3fa@if46: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
+    link/ether ce:80:2a:5b:46:04 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::cc80:2aff:fe5b:4604/64 scope link
+       valid_lft forever preferred_lft forever
+49: veth8522a3e@if48: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master docker0 state UP group default
+    link/ether 6a:1f:34:a5:c6:56 brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::681f:34ff:fea5:c656/64 scope link
+       valid_lft forever preferred_lft forever
+```
+
+
+
+#### VOLUME
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# cat Dockerfile.15
+FROM ubuntu
+VOLUME /container
+
+root@docker1:~/docker_lab/dockerfile_dir# docker build -t vol00 -f Dockerfile.15 .
+Sending build context to Docker daemon  200.2kB
+Step 1/2 : FROM ubuntu
+ ---> ba6acccedd29
+Step 2/2 : VOLUME /container
+ ---> Running in cf127136ad94
+Removing intermediate container cf127136ad94
+ ---> 5b80a12b71f5
+Successfully built 5b80a12b71f5
+Successfully tagged vol00:latest
+
+```
+
+
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker inspect  vol00
+[
+    {
+        "Id": "sha256:5b80a12b71f5f16f914250985cd94c13e870e3631a35efa6d1c4beca21b15a08",
+        "RepoTags": [
+            "vol00:latest"
+        ],
+        "RepoDigests": [],
+        "Parent": "sha256:ba6acccedd2923aee4c2acc6a23780b14ed4b8a5fa4e14e252a23b846df9b6c1",
+        "Comment": "",
+        "Created": "2021-12-22T04:24:18.805754093Z",
+        "Container": "cf127136ad94fa335ae6caef2663634108aaca5a816f7b52787a5edc5013fc48",
+        "ContainerConfig": {
+            ],
+            "Image": "sha256:ba6acccedd2923aee4c2acc6a23780b14ed4b8a5fa4e14e252a23b846df9b6c1",
+            "Volumes": {
+                "/container": {}
+            },
+        },
+        "DockerVersion": "20.10.12",
+        "Config": {
+            "Image": "sha256:ba6acccedd2923aee4c2acc6a23780b14ed4b8a5fa4e14e252a23b846df9b6c1",
+            "Volumes": {
+                "/container": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": null,
+            "OnBuild": null,
+            "Labels": null
+        },
+]
+
+
+
+root@docker1:~/docker_lab/dockerfile_dir# docker volume list
+DRIVER    VOLUME NAME
+local     1d1ec1ef28ba5877052c2cb32f6e60ddcaedc5dde36566c6154c2a72794d1d3c
+local     9515b6854d7d6662cfd786a6aea4fe5c94711720d2bbdd3e5ee551aaf3bacd26
+local     persistvol
+local     persisvol
+```
+
+
+
+* 실제 running된 container 상태를 확인하면 mount된 볼륨 상태를 확인할 수 있다.
+
+```
+root@docker1:~/docker_lab/dockerfile_dir# docker container inspect myvol00
+[
+    {
+        "Id": "2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca",
+        "Created": "2021-12-22T04:27:18.982305454Z",
+        "Path": "bash",
+        "Args": [],
+        "State": {},
+        "Image": "sha256:5b80a12b71f5f16f914250985cd94c13e870e3631a35efa6d1c4beca21b15a08",
+        "ResolvConfPath": "/var/lib/docker/containers/2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca/hostname",
+        "HostsPath": "/var/lib/docker/containers/2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca/hosts",
+        "LogPath": "/var/lib/docker/containers/2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca/2f5b6caeb013f8655760635b4aac80d55436df5a20c57dc9219e12fc77eaacca-json.log",
+        "Name": "/myvol00",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+        },
+        "GraphDriver": {
+            "Data": {
+                "LowerDir": "/var/lib/docker/overlay2/7003a801ce36a9d0c2370c00032fa35d5eecbc1c5ff365c37f1be150395af2e0-init/diff:/var/lib/docker/overlay2/ee49c3c6cb05e8b7d2ae252621f00c4222472532f6e3b0248883515716c6f251/diff",
+                "MergedDir": "/var/lib/docker/overlay2/7003a801ce36a9d0c2370c00032fa35d5eecbc1c5ff365c37f1be150395af2e0/merged",
+                "UpperDir": "/var/lib/docker/overlay2/7003a801ce36a9d0c2370c00032fa35d5eecbc1c5ff365c37f1be150395af2e0/diff",
+                "WorkDir": "/var/lib/docker/overlay2/7003a801ce36a9d0c2370c00032fa35d5eecbc1c5ff365c37f1be150395af2e0/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "1d1ec1ef28ba5877052c2cb32f6e60ddcaedc5dde36566c6154c2a72794d1d3c",
+                "Source": "/var/lib/docker/volumes/1d1ec1ef28ba5877052c2cb32f6e60ddcaedc5dde36566c6154c2a72794d1d3c/_data",
+                "Destination": "/container",
+                "Driver": "local",
+                "Mode": "",
+                "RW": true,
+                "Propagation": ""
+            }
+        ],
+]
+```
+
+
+
+
+
+
+
+## Kubernetes
+
+* 스케쥴러는 공간을 다룬다. 시간을 다룬다기 보다는....
+
+
+
+### K8S Component
+
+- **마스터(Master)** : 노드를 제어하고 전체 클러스터를 관리해주는 컨트롤러 이며, 전체적인 제어/관리를 하기 위한 관리 서버 입니다.
+- **노드(nod)** : 컨테이너가 배포될 물리 서버 또는 가상 머신 이며 워커 노드(Worker Node) 라고도 부릅니다.
+- **파드(pod)** : 단일 노드에 배포된 하나 이상의 컨테이너 그룹이며, 파드라는 단위로 여러개의 컨테이너를 묶어서 파드 단위로 관리 할 수 있게 해줍니다.
+
+
+
+![](img/k8s.png)
+
+* 여기서 Controller manager가 무엇인지 정확하게 설명 할 수 있어야 한는데...
+* 오브젝트 (pod, service, volume, namespace)는 각 노드의 Kubelet이 담당
+* 컨트롤러(replicaset, deployment, StatefulSet, DaemonSet, Job)은 마스터 노드의 Controler-manager가 담당 한다. 이것은 복잡도를 줄이기 위해서  모든 컨트롤러를 바이너리 파일하나로 컴파일 해 단일 프로스세스로 실행한다. 
+
+ 
+
+
+
+![image-20211222143343431](img/image-20211222143343431.png)
+
+
+
+#### 1. kube-apiserver
+
+쿠버네티스 API를 사용할 수 있도록 해주는 컨트롤 플레인 컴포넌트 입니다. 쿠버네티스 컨트롤 플레인의 프론트 엔드단(최전방, 사용자와 가장 근접)에서 동작하며 받은 요청이 유효한지 검증 합니다.
+
+#### 2. etcd
+
+클러스터의 모든 데이터를 저장하는 데이터베이스의 역할을 합니다. 키-값 저장소 형태로 동작하며 모든 데이터를 저장하는 용도이므로 데이터 백업 또는 클러스터링 후 여러 마스터 서버에 분산 실행하여 데이터의 안정성을 확보 해야합니다.
+
+#### 3. kube-shcedule
+
+노드가 배정되지 않은 새로 생성된 파드가 생길 때 이 파드를 사용할 가장 알맞은 노드를 선택 해주는 컨트롤 플레인 컴포넌트 입니다. H/W 요구 사항, 어피니티 및 안티-어피니티 등 다양한 요소를 고려하여 알맞은 노드를 선택 합니다
+
+#### 4. Kube-controler-manager
+
+kube-controller-manager:  마스터상에서 컨트롤러를 구동하는 컨포넌트 입니다. 논리적으로 각 컨트롤러는 개별 프로세스 이지만, 복잡성을 낮추기 위해 모두 단일 바이너리로 컴파일되고 단일 프로세스 내에서 실행 됩니다.
+
+1. 노드 컨트롤러(Node Controller) : 노드가 다운되었을 때 통지와 대응에 관한 책임을 가집니다.
+2. 리플리케이션 컨트롤러(Replication Controller) : 리플리케이션은 지정한 숫자의 pod 개수를 맞추고, 관리하는 역할을 하게 되는데, 리플리케이션 기능자체를 컨트롤 해주는 컴포넌트 입니다.
+3. 엔드포인트 컨트롤러(Endpoint Controller) : 서비스와 파드를 연결시켜주는 역할을 합니다. 즉, 종단에서 통신하기 위한 네트워크 설정등을 하기 위해 서비스 기능과 파드를 연결 시켜 줍니다.
+4. 서비스 어카운트 & 토큰 컨트롤러(Service account&Token Controller) : 생성된 네임스페이스에 대한 기본 계정과 API 접근 토큰을 생성 합니다.
+
+#### 5. kubelet
+
+모든 노드에서 실행되는 에이전트이며 파드 스펙(PodSpec)의 집합을 받아 컨테이너가 파드 스펙에 따라 정상적으로 동작하는것을 책임 집니다.
+
+ 
+
+#### 6. kube-proxy
+
+ 노드에서 실행되는 가상 네트워크를 유지/관리 합니다.
+
+ 
+
+#### 7. Container Runtime
+
+ 컨테이너 실행을 담당하는 소프트웨어로써 도커와 같은 소프트웨어가 런타임에 포함 됩니다.
+
+
+
+![image-20211222143538033](img/image-20211222143538033.png)
+
+
+
+
+
+
+
+![img](img/format,png)
+
+
+
+
+
+### install k8s
+
+#### kubeadm
+
+* 여기 참조해서 설치 하세요
+
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+```
+apt-get install -y   kubelet=1.21.0-00 kubeadm=1.21.0-00 kubectl=1.21.0-00
+```
+
+
+
+
+
+```
+root@docker1:/var/lib/docker/volumes# kubectl  version
+Client Version: version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCommit:"cb303e613a121a29364f75cc67d3d580833a7479", GitTreeState:"clean", BuildDate:"2021-04-08T16:31:21Z", GoVersion:"go1.16.1", Compiler:"gc", Platform:"linux/amd64"}
+The connection to the server localhost:8080 was refused - did you specify the right host or port?
+
+root@docker1:/var/lib/docker/volumes# kubeadm version
+kubeadm version: &version.Info{Major:"1", Minor:"21", GitVersion:"v1.21.0", GitCommit:"cb303e613a121a29364f75cc67d3d580833a7479", GitTreeState:"clean", BuildDate:"2021-04-
+08T16:30:03Z", GoVersion:"go1.16.1", Compiler:"gc", Platform:"linux/amd64"}
+
+root@docker1:/var/lib/docker/volumes# kubelet --version
+Kubernetes v1.21.0
+
+```
+
+
+
+
+
+#### kubeadm init
+
+```
+root@master:~# kubeadm init
+I1222 07:46:59.633660    5644 version.go:254] remote version is much newer: v1.23.1; falling back to: stable-1.21
+[init] Using Kubernetes version: v1.21.8
+[preflight] Running pre-flight checks
+[preflight] Pulling images required for setting up a Kubernetes cluster
+[preflight] This might take a minute or two, depending on the speed of your internet connection
+[preflight] You can also perform this action in beforehand using 'kubeadm config images pull'
+
+Your Kubernetes control-plane has initialized successfully!
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Alternatively, if you are the root user, you can run:
+
+  export KUBECONFIG=/etc/kubernetes/admin.conf
+
+You should now deploy a pod network to the cluster.
+Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
+  https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+Then you can join any number of worker nodes by running the following on each as root:
+
+kubeadm join 192.168.137.101:6443 --token 2247oo.gvwarfh66u5sif63 \
+        --discovery-token-ca-cert-hash sha256:9f58ee0cd78509962d5807e8d4abfd80bc55f65c8311d06ef52e57876826fbb7
+
+```
+
+
+
+
+
+```
+root@master:~# docker container ps -a
+CONTAINER ID   IMAGE                    COMMAND                  CREATED          STATUS          PORTS     NAMES
+0a4d3fc30fce   f70621d55c05             "/usr/local/bin/kube…"   12 minutes ago   Up 12 minutes             k8s_kube-proxy_kube-proxy-87scc_kube-system_3b284701-1ef3-450d-9e8f-cc5f47a6a2dc_0
+6d5acd29f0f0   k8s.gcr.io/pause:3.4.1   "/pause"                 12 minutes ago   Up 12 minutes             k8s_POD_kube-proxy-87scc_kube-system_3b284701-1ef3-450d-9e8f-cc5f47a6a2dc_0
+2699ac6f0414   4cd11f55d2ec             "kube-scheduler --au…"   12 minutes ago   Up 12 minutes             k8s_kube-scheduler_kube-scheduler-master_kube-system_19fecd1fe5f2c67900f15b3e8051cbc5_0
+8575675b0d4a   74e3bdf53cd3             "kube-controller-man…"   12 minutes ago   Up 12 minutes             k8s_kube-controller-manager_kube-controller-manager-master_kube-system_d6d66e9d7986abee88049e7afb44a97f_0
+b5d22e21e335   k8s.gcr.io/pause:3.4.1   "/pause"                 12 minutes ago   Up 12 minutes             k8s_POD_kube-scheduler-master_kube-system_19fecd1fe5f2c67900f15b3e8051cbc5_0
+9a799f8d6f68   k8s.gcr.io/pause:3.4.1   "/pause"                 12 minutes ago   Up 12 minutes             k8s_POD_kube-controller-manager-master_kube-system_d6d66e9d7986abee88049e7afb44a97f_0
+dec39c321b7a   a5a584eef959             "kube-apiserver --ad…"   12 minutes ago   Up 12 minutes             k8s_kube-apiserver_kube-apiserver-master_kube-system_741b5dfc2b239358fefed9d41e9cc41a_0
+8590a4bff15c   k8s.gcr.io/pause:3.4.1   "/pause"                 12 minutes ago   Up 12 minutes             k8s_POD_kube-apiserver-master_kube-system_741b5dfc2b239358fefed9d41e9cc41a_0
+ee7a4c79a6a8   0369cf4303ff             "etcd --advertise-cl…"   12 minutes ago   Up 12 minutes             k8s_etcd_etcd-master_kube-system_b1587e42bdf3875151217772e66c2334_0
+41c899a4d428   k8s.gcr.io/pause:3.4.1   "/pause"                 12 minutes ago   Up 12 minutes             k8s_POD_etcd-master_kube-system_b1587e42bdf3875151217772e66c2334_0
+
+```
+
+
+
+#### /etc/kubenetes/admin.conf
+
+```
+root@master:~# cat /etc/kubernetes/admin.conf
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tL...
+    server: https://192.168.137.101:6443  <<=== 6443이 api server port 이다.  
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: LS0tLS....
+    client-key-data: LS0tLS .....
+
+```
+
+
+
+#### CNI 
+
+* CNI가 하는 일이 다르고
+* kube-proxy가 하는 일이다르고
+* docker bridge가 하는 일이 서로 다르다.
+
+![](img/Kubernetes-Network-routing-to-export-the-services.png)
+
+* 우리는 calico를 사용한다. 
+* 왜 docker bridge를 사용하지 않고 calico를 사용하는 것인가?
+
+```
+root@master:~# wget https://docs.projectcalico.org/master/manifests/calico.yaml
+--2021-12-22 08:21:54--  https://docs.projectcalico.org/master/manifests/calico.yaml
+Resolving docs.projectcalico.org (docs.projectcalico.org)... 178.128.93.124, 18.140.226.100, 2406:da18:880:3800:3cf7:d90b:9468:f4a6, ...
+Connecting to docs.projectcalico.org (docs.projectcalico.org)|178.128.93.124|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 217518 (212K) [text/yaml]
+Saving to: ‘calico.yaml’
+
+calico.yaml                        100%[=============================================================>] 212.42K   337KB/s    in 0.6s
+
+2021-12-22 08:21:55 (337 KB/s) - ‘calico.yaml’ saved [217518/217518]
+
+# kubectl apply -f calico.yaml
+```
+
+
+
+```
+root@master:~# kubectl get pods --all-namespaces
+NAMESPACE     NAME                                      READY   STATUS    RESTARTS   AGE
+kube-system   calico-kube-controllers-d5457d6fb-gksbb   1/1     Running   0          5m18s
+kube-system   calico-node-kpmxg                         1/1     Running   0          5m19s
+kube-system   coredns-558bd4d5db-gl2ph                  1/1     Running   0          35m
+kube-system   coredns-558bd4d5db-k25m5                  1/1     Running   0          35m
+kube-system   etcd-master                               1/1     Running   0          35m
+kube-system   kube-apiserver-master                     1/1     Running   0          35m
+kube-system   kube-controller-manager-master            1/1     Running   0          35m
+kube-system   kube-proxy-87scc                          1/1     Running   0          35m
+kube-system   kube-scheduler-master                     1/1     Running   0          35m
+```
+
+* network device가 이렇게  생성 되어 버렸네...
+
+```
+root@master:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:5a:a9:d9 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.137.101/24 brd 192.168.137.255 scope global enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a00:27ff:fe5a:a9d9/64 scope link
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
+    link/ether 02:42:65:25:a8:3f brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+4: cali40546dca37b@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet6 fe80::ecee:eeff:feee:eeee/64 scope link
+       valid_lft forever preferred_lft forever
+5: calibdf6ae7ccc8@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netnsid 1
+    inet6 fe80::ecee:eeff:feee:eeee/64 scope link
+       valid_lft forever preferred_lft forever
+6: cali314fdfc802b@if3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether ee:ee:ee:ee:ee:ee brd ff:ff:ff:ff:ff:ff link-netnsid 2
+    inet6 fe80::ecee:eeff:feee:eeee/64 scope link
+       valid_lft forever preferred_lft forever
+9: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+    inet 172.16.219.64/32 scope global tunl0
+       valid_lft forever preferred_lft forever
+
+```
+
+
+
+#### worker node cni
+
+```
+<worker1>
+root@worker1:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:08:d9:6a brd ff:ff:ff:ff:ff:ff
+    inet 192.168.137.102/24 brd 192.168.137.255 scope global enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a00:27ff:fe08:d96a/64 scope link
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
+    link/ether 02:42:29:0c:83:df brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+6: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+    inet 172.16.235.128/32 scope global tunl0
+       valid_lft forever preferred_lft forever       
+```
+
+
+
+
+
+```
+<worker2>
+root@worker2:~# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 08:00:27:4e:f4:6a brd ff:ff:ff:ff:ff:ff
+    inet 192.168.137.103/24 brd 192.168.137.255 scope global enp0s3
+       valid_lft forever preferred_lft forever
+    inet6 fe80::a00:27ff:fe4e:f46a/64 scope link
+       valid_lft forever preferred_lft forever
+3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN group default
+    link/ether 02:42:21:a9:57:10 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+6: tunl0@NONE: <NOARP,UP,LOWER_UP> mtu 1480 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/ipip 0.0.0.0 brd 0.0.0.0
+    inet 172.16.189.64/32 scope global tunl0
+       valid_lft forever preferred_lft forever
+```
+
+
+
+#### 편리한 환경 구성
+
+```
+root@master:~# apt install -y bash-completion
+root@master:~# source  <(kubectl completion bash)
+root@master:~# echo "source <(kubectl completion bash)" >> ~/.bashrc
+root@master:~# echo "alias k=kubectl" >> ~/.bashrc
+root@master:~# complete  -F __start_kubectl k
+root@master:~# source .bashrc
+
+# ssh-keygen
+# ssh-copy-id
+```
+
+
+
+### K8S Operation
+
+* k8s architecture
+
+![](D:\Code\k8s\img\k8s_architecture.png)
+
+
+
+#### 1. Pod 
+
+* application 의 기본 실행 단위
+* 배포 가능한 가장 작고 간단한 단위
+
+![](D:\Code\k8s\img\1_wroUOpgrvj9WLbd3_F8fnA.png)
+
+* kube-system에 등록된  pod 들....
+
+````
+root@master:~# k get pods -n kube-system
+NAME                                      READY   STATUS    RESTARTS   AGE
+calico-kube-controllers-d5457d6fb-gksbb   1/1     Running   0          16h
+calico-node-5p484                         1/1     Running   0          16h
+calico-node-kpmxg                         1/1     Running   0          16h
+calico-node-z49pz                         1/1     Running   0          16h
+coredns-558bd4d5db-gl2ph                  1/1     Running   0          17h
+coredns-558bd4d5db-k25m5                  1/1     Running   0          17h
+etcd-master                               1/1     Running   0          17h
+kube-apiserver-master                     1/1     Running   0          17h
+kube-controller-manager-master            1/1     Running   0          17h
+kube-proxy-87scc                          1/1     Running   0          17h
+kube-proxy-9nkq6                          1/1     Running   0          16h
+kube-proxy-gwxxx                          1/1     Running   0          16h
+kube-scheduler-master                     1/1     Running   0          17h
+````
+
+
+
+#### 2. Controller
+
+* Controller의 상태를 유지 하도록 하는 역할을 한다. 
+* Desigered state를 정의하고 그 상태를 유지하도록 하는 역할을 한다. 노드도 관리하고, pod도 관리한다.
+* Controller가 실제 매우 중요하다. MSA에서도 특히 중요하다. 
+
+
+
+![](img/kdpv.png)
+
+* Some of the platform features which K8S offers are:
+
+1. · Container grouping using pod
+2. · Self-healing
+3. · Auto-scalablility 
+4. · DNS management
+5. · Load balancing
+6. · Rolling update or rollback
+7. · Resource monitoring and logging
+
+
+
+* Generic Controller Internal
+
+![](img/1_WoK6RtUFiDwNC50I8DaJkA.png)
+
+
+
+
+
+* custom controller
+
+
+
+![](img/1_dmvNSeSIORAMaTF2WdE9fg.jpeg)
+
+
+
+* 
+
+* Top 10 Container Design patterns
+
+![](D:\Code\k8s\img\top_10_kubernetes_patterns.png)
+
+
+
+
+
+#### 3. service
+
+- 이것은 pod의 네트워크와 매우 중요한 관계를 갖는다.
+- 왜냐하면 pod는 내부적으로 CNI에서 할당한 internal  IP를 가지고 있기 때문에. 외부에서 찾아서 들어오기 위한 설정이 필요하다. 
+- 이것은 보통은 NAPT 방식으로 포트 포워딩 방식을 이용하여 서비스르 제공한다
+- 서비스가 자신의 IP를 할당 받은 다음에 외부에서 찾아 올 수 있도록 하는 역할 을 한다. 
+- Label 이 중요한 개념이다. 이거 나중에 나온다. 
+
+
+
+![](img/k8s_service_concept.svg)
+
+
+
+##### k8s service type
+
+![](img/k8s_service_type.jpg)
+
+
+
+![](img/K8S_service_architecutre.JPG)
+
+
+
+
+
+
+
+![](img/resources.png)
+
+
+
+* 근데 kube-proxy 역할은 뭐냐?
+* 초창기에는 엄청 많이 바쁜 놈이였다. 원래는 iptables가 하던 역할을 수행했었다. 
+* 각자 모두 역할 이 있다. 
+* Kube-proxy:  각 클러스터의 각 노드에서 실행되는 가상 네트워크를 설정하고 관리하는 테으쿼으 프로록시 , 쿠버네티스 서비스를 구ㅅ현 사는 , 노드의 네트워크 규칙을 관리하고, 네트워으크 규칙겡 따라서 클러스스터 바깥에서 파드와 통신을 가능하게 하는 역할을한다. 즉 iptables의 역할 관리하는 기능 수행한다고 생각하면 된다. 
+* CNI 역할도 따로 있고, Service 역할도 따로 있고, kube-proxy 역할도 따로 있다.
+* CNI 는 LABEL을 이용하여 아무튼 처리한다. 
+
+
+
+
+
+#### 3. Pod Volume 
+
+![](img/k8s_storage.jpg)
+
+
+
+
+
+
+
+![](img/storageclass.png)
+
+
+
+![](img/k8s_dynamic.svg)
+
+
+
+
+
+![](img/k8s-stor-4.png)
+
+
+
+#### 4. Namespace
+
+
+
+```
+root@master:~# kubectl get deployments.apps -n kube-system
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+calico-kube-controllers   1/1     1            1           18h
+coredns                   2/2     2            2           18h
+
+```
+
+
+
+```
+root@master:~# kubectl get all -n kube-system
+NAME                                          READY   STATUS    RESTARTS   AGE
+pod/calico-kube-controllers-d5457d6fb-gksbb   1/1     Running   0          18h
+pod/calico-node-5p484                         1/1     Running   0          18h
+pod/calico-node-kpmxg                         1/1     Running   0          18h
+pod/calico-node-z49pz                         1/1     Running   0          18h
+pod/coredns-558bd4d5db-gl2ph                  1/1     Running   0          18h
+pod/coredns-558bd4d5db-k25m5                  1/1     Running   0          18h
+pod/etcd-master                               1/1     Running   0          18h
+pod/kube-apiserver-master                     1/1     Running   0          18h
+pod/kube-controller-manager-master            1/1     Running   0          18h
+pod/kube-proxy-87scc                          1/1     Running   0          18h
+pod/kube-proxy-9nkq6                          1/1     Running   0          18h
+pod/kube-proxy-gwxxx                          1/1     Running   0          18h
+pod/kube-scheduler-master                     1/1     Running   0          18h
+
+NAME               TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)                  AGE
+service/kube-dns   ClusterIP   10.96.0.10   <none>        53/UDP,53/TCP,9153/TCP   18h
+
+NAME                         DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+daemonset.apps/calico-node   3         3         3       3            3       kubernetes.io/os=linux   18h
+daemonset.apps/kube-proxy    3         3         3       3            3       kubernetes.io/os=linux   18h
+
+NAME                                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/calico-kube-controllers   1/1     1            1           18h
+deployment.apps/coredns                   2/2     2            2           18h
+
+NAME                                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/calico-kube-controllers-d5457d6fb   1         1         1       18h
+replicaset.apps/coredns-558bd4d5db                  2         2         2       18h
+
+```
+
+
+
+##### kubectl config view
+
+```
+root@master:~# kubectl  config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://192.168.137.101:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
+
+```
+
+##### kubectl config set-context
+
+```
+root@master:~# kubectl config get-contexts
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
+
+root@master:~# kubectl config get-contexts   kubernetes-admin@kubernetes
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin
+
+root@master:~#
+root@master:~#
+root@master:~#
+root@master:~# kubectl config set-context  kubernetes-admin@kubernetes --namespace=kube-system
+Context "kubernetes-admin@kubernetes" modified.
+
+
+root@master:~# kubectl config get-contexts   kubernetes-admin@kubernetes
+CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
+*         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   kube-system
 ```
 
