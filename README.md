@@ -2492,9 +2492,11 @@ root@docker1:~/docker_lab/dockerfile_dir# docker container inspect myvol00
 
 ## Kubernetes
 
+### K8S Architecture
+
 * 스케쥴러는 공간을 다룬다. 시간을 다룬다기 보다는....
 
-
+![](img/kubernetes-constructs-concepts-architecture.jpg)
 
 ### K8S Component
 
@@ -3096,5 +3098,583 @@ Context "kubernetes-admin@kubernetes" modified.
 root@master:~# kubectl config get-contexts   kubernetes-admin@kubernetes
 CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPACE
 *         kubernetes-admin@kubernetes   kubernetes   kubernetes-admin   kube-system
+```
+
+
+
+
+
+## Pod
+
+```yaml
+root@master:~/k8s_lab/pod# cat app.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  containers:
+  - image: takytaky/app:v1
+    name: app-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+```
+
+
+
+```yaml
+
+root@master:~/k8s_lab/pod# kubectl get pod app -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    cni.projectcalico.org/containerID: 92795bbb64aaad50486259d7250d857e7e1d5ccba0dde8333226350049c9ea92
+    cni.projectcalico.org/podIP: 172.16.189.65/32
+    cni.projectcalico.org/podIPs: 172.16.189.65/32
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"Pod","metadata":{"annotations":{},"labels":{"app":"app"},"name":"app","namespace":"default"},"spec":{"containers":[{"image":"takytaky/app:v1","name":"app-container","ports":[{"containerPort":8080,"protocol":"TCP"}]}]}}
+  creationTimestamp: "2021-12-23T04:46:49Z"
+  labels:
+    app: app
+  name: app
+  namespace: default
+  resourceVersion: "105891"
+  uid: 72a38bae-1523-4740-a68e-45efc16eec1e
+spec:
+  containers:
+  - image: takytaky/app:v1
+    imagePullPolicy: IfNotPresent
+    name: app-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-wf2qv
+      readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  nodeName: worker2
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext: {}
+  serviceAccount: default
+  serviceAccountName: default
+  terminationGracePeriodSeconds: 30
+  tolerations:
+  - effect: NoExecute
+    key: node.kubernetes.io/not-ready
+    operator: Exists
+    tolerationSeconds: 300
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    operator: Exists
+    tolerationSeconds: 300
+  volumes:
+  - name: kube-api-access-wf2qv
+    projected:
+      defaultMode: 420
+      sources:
+      - serviceAccountToken:
+          expirationSeconds: 3607
+          path: token
+      - configMap:
+          items:
+          - key: ca.crt
+            path: ca.crt
+          name: kube-root-ca.crt
+      - downwardAPI:
+          items:
+          - fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+            path: namespace
+status:
+  conditions:
+  containerStatuses:
+  hostIP: 192.168.137.103
+  phase: Pending
+  qosClass: BestEffort
+  startTime: "2021-12-23T04:46:49Z"
+```
+
+
+
+#### pod describe
+
+```yaml
+root@worker2:~# kubectl describe  pod app
+Name:         app
+Namespace:    default
+Priority:     0
+Node:         worker2/192.168.137.103
+Start Time:   Thu, 23 Dec 2021 04:46:49 +0000
+Labels:       app=app
+Annotations:  cni.projectcalico.org/containerID: 92795bbb64aaad50486259d7250d857e7e1d5ccba0dde8333226350049c9ea92
+              cni.projectcalico.org/podIP: 172.16.189.65/32
+              cni.projectcalico.org/podIPs: 172.16.189.65/32
+Status:       Running
+IP:           172.16.189.65
+IPs:
+  IP:  172.16.189.65
+Containers:
+  app-container:
+    Container ID:   docker://5048bfdb0710533aef876ce493d526b46be23a6fde3d7777de3ca749892a7d3d
+    Image:          takytaky/app:v1
+    Image ID:       docker-pullable://takytaky/app@sha256:2a9453758e8298117dc31fbb5063bc330e9af2b660a63a00cbbf495f19c9e627
+    Port:           8080/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Thu, 23 Dec 2021 04:51:22 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-wf2qv (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  kube-api-access-wf2qv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason       Age   From               Message
+  ----     ------       ----  ----               -------
+  Normal   Scheduled    24m   default-scheduler  Successfully assigned default/app to worker2
+  Warning  FailedMount  24m   kubelet            MountVolume.SetUp failed for volume "kube-api-access-wf2qv" : failed to sync configmap cache: timed out waiting for the condition
+  Normal   Pulling      24m   kubelet            Pulling image "takytaky/app:v1"
+  Normal   Pulled       19m   kubelet            Successfully pulled image "takytaky/app:v1" in 4m28.972253516s
+  Normal   Created      19m   kubelet            Created container app-container
+  Normal   Started      19m   kubelet            Started container app-container
+
+```
+
+
+
+
+
+```
+root@master:~/k8s_lab# kubectl create namespace cpu-example
+namespace/cpu-example created
+
+```
+
+##### cpu resource limit
+
+```
+root@master:~/k8s_lab/pod/pod-resources# cat cpu-request-limit*
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cpu-demo-2
+  namespace: cpu-example
+spec:
+  containers:
+  - name: cpu-demo-ctr-2
+    image: vish/stress
+    resources:
+      limits:
+        cpu: "100"
+      requests:
+        cpu: "100"
+    args:
+    - -cpus
+    - "2"
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cpu-demo
+  namespace: cpu-example
+spec:
+  containers:
+  - name: cpu-demo-ctr
+    image: vish/stress
+    resources:
+      limits:
+        cpu: "1"
+      requests:
+        cpu: "0.5"
+    args:
+    - -cpus
+    - "2"
+
+```
+
+##### 
+
+```
+Every 0.2s: kubectl get pods -o ...  master: Thu Dec 23 05:43:58 2021
+NAME         READY   STATUS    RESTARTS   AGE   IP               NODE       NOMINATED NODE   READINESS GATES
+cpu-demo     1/1     Running   0          86s   172.16.235.129   worker1   <none>           <none>
+cpu-demo-2   0/1     Pending   0          55s   <none>           <none>    <none>           <none>
+
+```
+
+
+
+##### 원인 분석
+
+
+
+```
+root@master:~/k8s_lab/pod/pod-resources# kubectl describe -n cpu-example pod  cpu-demo-2
+Name:         cpu-demo-2
+Namespace:    cpu-example
+Priority:     0
+Node:         <none>
+Labels:       <none>
+Annotations:  <none>
+Status:       Pending
+IP:
+IPs:          <none>
+Containers:
+  cpu-demo-ctr-2:
+    Image:      vish/stress
+    Port:       <none>
+    Host Port:  <none>
+    Args:
+      -cpus
+      2
+    Limits:
+      cpu:  100
+    Requests:
+      cpu:        100
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-qc9ln (ro)
+Conditions:
+  Type           Status
+  PodScheduled   False
+Volumes:
+  kube-api-access-qc9ln:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason            Age    From               Message
+  ----     ------            ----   ----               -------
+  Warning  FailedScheduling  3m24s  default-scheduler  0/3 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate, 2 Insufficient cpu.
+  Warning  FailedScheduling  3m23s  default-scheduler  0/3 nodes are available: 1 node(s) had taint {node-role.kubernetes.io/master: }, that the pod didn't tolerate, 2 Insufficient cpu.
+```
+
+
+
+``` yaml
+root@master:~/k8s_lab/pod/pod-resources# kubectl describe pod memory-demo-2 -n  mem-example
+Name:         memory-demo-2
+Namespace:    mem-example
+Priority:     0
+Node:         worker2/192.168.137.103
+Start Time:   Thu, 23 Dec 2021 06:07:36 +0000
+Labels:       <none>
+Annotations:  cni.projectcalico.org/containerID: a4e9a1f6b735b50ae7a56534e0bca867ed9a724ee9f5080db459667a84d3b5f1
+              cni.projectcalico.org/podIP: 172.16.189.67/32
+              cni.projectcalico.org/podIPs: 172.16.189.67/32
+Status:       Running
+IP:           172.16.189.67
+IPs:
+  IP:  172.16.189.67
+Containers:
+  memory-demo-2-ctr:
+    Container ID:  docker://a57aaa8a7ebb512216c6e896638d0627a792bff584424ebd7b55f683d9374dc4
+    Image:         polinux/stress
+    Image ID:      docker-pullable://polinux/stress@sha256:b6144f84f9c15dac80deb48d3a646b55c7043ab1d83ea0a697c09097aaad21aa
+    Port:          <none>
+    Host Port:     <none>
+    Command:
+      stress
+    Args:
+      --vm
+      1
+      --vm-bytes
+      250M
+      --vm-hang
+      1
+    State:          Waiting
+      Reason:       CrashLoopBackOff
+    Last State:     Terminated
+      Reason:       OOMKilled
+      Exit Code:    1
+      Started:      Thu, 23 Dec 2021 06:08:28 +0000
+      Finished:     Thu, 23 Dec 2021 06:08:28 +0000
+    Ready:          False
+    Restart Count:  3
+    Limits:
+      memory:  100Mi
+    Requests:
+      memory:     50Mi
+    Environment:  <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-z8wvv (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             False
+  ContainersReady   False
+  PodScheduled      True
+Volumes:
+  kube-api-access-z8wvv:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   Burstable
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type     Reason     Age                From               Message
+  ----     ------     ----               ----               -------
+  Normal   Scheduled  96s                default-scheduler  Successfully assigned mem-example/memory-demo-2 to worker2
+  Normal   Pulled     92s                kubelet            Successfully pulled image "polinux/stress" in 2.474823989s
+  Normal   Pulled     89s                kubelet            Successfully pulled image "polinux/stress" in 2.495031349s
+  Normal   Pulled     72s                kubelet            Successfully pulled image "polinux/stress" in 2.524858826s
+  Normal   Created    44s (x4 over 92s)  kubelet            Created container memory-demo-2-ctr
+  Normal   Started    44s (x4 over 92s)  kubelet            Started container memory-demo-2-ctr
+  Normal   Pulled     44s                kubelet            Successfully pulled image "polinux/stress" in 2.599074092s
+  Warning  BackOff    16s (x7 over 89s)  kubelet            Back-off restarting failed container
+  Normal   Pulling    3s (x5 over 95s)   kubelet            Pulling image "polinux/stress"
+  Normal   Pulled     0s                 kubelet            Successfully pulled image "polinux/stress" in 2.420574826s
+
+```
+
+
+
+#### init container
+
+* init container
+
+```
+root@master:~/k8s_lab/pod# cat init-containers.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: init-demo
+spec:
+  containers:
+  - name: nginx
+    image: nginx
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: workdir
+      mountPath: /usr/share/nginx/html
+  # These containers are run during pod initialization
+  initContainers:
+  - name: install
+    image: busybox
+    command:
+    - wget
+    - "-O"
+    - "/work-dir/index.html"
+    - http://info.cern.ch
+    volumeMounts:
+    - name: workdir
+      mountPath: "/work-dir"
+  dnsPolicy: Default
+  volumes:
+  - name: workdir
+    emptyDir: {}
+
+```
+
+
+
+#### pause  container
+
+* pod를 만들면 기본적으로 pause 컨테이너가 기본으로 만들어 진다. 이것이 pod의 기본 기능을 담당하게 된다. 그래서 실제 비지니스 컨테이너가 다운되더라도 이 컨테이너가 리소스를 가지고 있기 때문에 해제 되지 않고 비지니스 컨테이너가 실행 될 수 있는 것이다.
+
+```
+root@worker2:~# docker ps  | grep app
+5048bfdb0710   takytaky/app             "node app.js"            2 hours ago    Up 2 hours              k8s_app-container_app_default_72a38bae-1523-4740-a68e-45efc16eec1e_0
+92795bbb64aa   k8s.gcr.io/pause:3.4.1   "/pause"                 2 hours ago    Up 2 hours              k8s_POD_app_default_72a38bae-1523-4740-a68e-45efc16eec1e_0
+root@worker2:~#
+
+```
+
+*  아무튼 할당 된 리소스를 물고 있는 컨테이너는 pause 컨테이너이다.
+
+![](img/pauseContainer.png)
+
+
+
+
+
+#### static pod
+
+* static pod는 여기에 있어요
+
+```
+root@master:/etc/kubernetes/manifests# ls -lrt
+total 16
+-rw------- 1 root root 1384 Dec 22 07:51 kube-scheduler.yaml
+-rw------- 1 root root 3350 Dec 22 07:51 kube-controller-manager.yaml
+-rw------- 1 root root 3977 Dec 22 07:51 kube-apiserver.yaml
+-rw------- 1 root root 2195 Dec 22 07:51 etcd.yaml
+```
+
+* static pod는 worker 노드에서 kebelt이 직접 핸들링하는 pod 이다. 뭔가 고정해서  운영해야 하는 container가 필요하다면  stacit pod를 이용해서 구현할 수 있다는 점을 기억해야  한다.  
+
+```
+root@master:/etc/kubernetes/manifests# cat /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 0s
+    cacheUnauthorizedTTL: 0s
+cgroupDriver: systemd
+clusterDNS:
+- 10.96.0.10
+clusterDomain: cluster.local
+cpuManagerReconcilePeriod: 0s
+evictionPressureTransitionPeriod: 0s
+fileCheckFrequency: 0s
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 0s
+imageMinimumGCAge: 0s
+kind: KubeletConfiguration
+logging: {}
+nodeStatusReportFrequency: 0s
+nodeStatusUpdateFrequency: 0s
+resolvConf: /run/systemd/resolve/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 0s
+shutdownGracePeriod: 0s
+shutdownGracePeriodCriticalPods: 0s
+staticPodPath: /etc/kubernetes/manifests    <<==== static pod 위치 정의 
+streamingConnectionIdleTimeout: 0s
+syncFrequency: 0s
+volumeStatsAggPeriod: 0s
+
+```
+
+
+
+* worker 1번에서 statc pod 생성하기
+
+```
+root@worker1:~# cat /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    cacheTTL: 0s
+    enabled: true
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 0s
+    cacheUnauthorizedTTL: 0s
+cgroupDriver: systemd
+clusterDNS:
+- 10.96.0.10
+clusterDomain: cluster.local
+cpuManagerReconcilePeriod: 0s
+evictionPressureTransitionPeriod: 0s
+fileCheckFrequency: 0s
+healthzBindAddress: 127.0.0.1
+healthzPort: 10248
+httpCheckFrequency: 0s
+imageMinimumGCAge: 0s
+kind: KubeletConfiguration
+logging: {}
+nodeStatusReportFrequency: 0s
+nodeStatusUpdateFrequency: 0s
+resolvConf: /run/systemd/resolve/resolv.conf
+rotateCertificates: true
+runtimeRequestTimeout: 0s
+shutdownGracePeriod: 0s
+shutdownGracePeriodCriticalPods: 0s
+staticPodPath: /etc/static.d   <<=== 여기에 경로를 지정한 다음 실제 static으로 기동하려고 하는 yaml을 넣어 주면 된다.  
+streamingConnectionIdleTimeout: 0s
+syncFrequency: 0s
+volumeStatsAggPeriod: 0s
+
+```
+
+```
+root@worker1:~# ls -l /etc/static.d/
+total 4
+-rw-r--r-- 1 root root 198 Dec 23 07:10 app.yaml
+root@worker1:~# systemctl restart kubelet
+
+root@master:/etc/kubernetes/manifests# kubectl get pods
+NAME          READY   STATUS              RESTARTS   AGE
+app-worker1   0/1     ContainerCreating   0          52s
+
+<<== static pod라서 그런지 이름이 appt-worker1이란 것으로 기동 되는구나.... 
+```
+
+* pod statring watching 
+
+```
+root@worker1:~# kubectl get pod  app-worker1 -w
+NAME          READY   STATUS    RESTARTS   AGE
+app-worker1   1/1     Running   0          3m26s
+```
+
+* kubectl config view 
+
+```sh
+root@worker1:~# kubectl config view
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: DATA+OMITTED
+    server: https://192.168.137.101:6443
+  name: kubernetes
+contexts:
+- context:
+    cluster: kubernetes
+    user: kubernetes-admin
+  name: kubernetes-admin@kubernetes
+current-context: kubernetes-admin@kubernetes
+kind: Config
+preferences: {}
+users:
+- name: kubernetes-admin
+  user:
+    client-certificate-data: REDACTED
+    client-key-data: REDACTED
 ```
 
