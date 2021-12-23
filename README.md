@@ -3711,6 +3711,8 @@ kube-system   kube-scheduler-master                     1/1     Running   0     
 
 #### create label pod
 
+![](img/20211223_172641.jpg)
+
 ```yaml
 apiVersion: apps/v1
 kind: Deployment
