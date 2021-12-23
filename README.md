@@ -3106,6 +3106,8 @@ CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPAC
 
 ## Pod
 
+#### pod 
+
 ```yaml
 root@master:~/k8s_lab/pod# cat app.yaml
 apiVersion: v1
@@ -3636,6 +3638,8 @@ volumeStatsAggPeriod: 0s
 root@worker1:~# ls -l /etc/static.d/
 total 4
 -rw-r--r-- 1 root root 198 Dec 23 07:10 app.yaml
+
+
 root@worker1:~# systemctl restart kubelet
 
 root@master:/etc/kubernetes/manifests# kubectl get pods
@@ -3676,5 +3680,305 @@ users:
   user:
     client-certificate-data: REDACTED
     client-key-data: REDACTED
+```
+
+
+
+
+
+## Label & Selector
+
+
+
+```
+Every 0.2s: kubectl get pods --show-labels -A                                                                                                  master: Thu Dec 23 08:10:25 2021
+
+NAMESPACE     NAME                                      READY   STATUS    RESTARTS   AGE   LABELS
+kube-system   calico-kube-controllers-d5457d6fb-gksbb   1/1     Running   0          23h   k8s-app=calico-kube-controllers,pod-template-hash=d5457d6fb
+kube-system   calico-node-5p484                         1/1     Running   0          23h   controller-revision-hash=645fc58fd6,k8s-app=calico-node,pod-template-generation=1
+kube-system   calico-node-kpmxg                         1/1     Running   0          23h   controller-revision-hash=645fc58fd6,k8s-app=calico-node,pod-template-generation=1
+kube-system   calico-node-z49pz                         1/1     Running   0          23h   controller-revision-hash=645fc58fd6,k8s-app=calico-node,pod-template-generation=1
+kube-system   coredns-558bd4d5db-gl2ph                  1/1     Running   0          24h   k8s-app=kube-dns,pod-template-hash=558bd4d5db
+kube-system   coredns-558bd4d5db-k25m5                  1/1     Running   0          24h   k8s-app=kube-dns,pod-template-hash=558bd4d5db
+kube-system   etcd-master                               1/1     Running   0          24h   component=etcd,tier=control-plane
+kube-system   kube-apiserver-master                     1/1     Running   0          24h   component=kube-apiserver,tier=control-plane
+kube-system   kube-controller-manager-master            1/1     Running   0          24h   component=kube-controller-manager,tier=control-plane
+kube-system   kube-proxy-87scc                          1/1     Running   0          24h   controller-revision-hash=7546c69d65,k8s-app=kube-proxy,pod-template-generation=1
+kube-system   kube-proxy-9nkq6                          1/1     Running   0          23h   controller-revision-hash=7546c69d65,k8s-app=kube-proxy,pod-template-generation=1
+kube-system   kube-proxy-gwxxx                          1/1     Running   0          23h   controller-revision-hash=7546c69d65,k8s-app=kube-proxy,pod-template-generation=1
+kube-system   kube-scheduler-master                     1/1     Running   0          24h   component=kube-scheduler,tier=control-plane
+```
+
+#### create label pod
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-app01
+  labels:
+    app: nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+        environment: develop
+        release: beta
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app
+        ports:
+        - containerPort: 80
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: annotation-nodejs
+  labels:
+    app: nodejs
+  annotations:
+    manufacturer: "takytaky"
+    e-mail: "takytaky@example.com"
+    release-version: "v1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app:v1
+        ports:
+        - containerPort: 80
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-app02
+  labels:
+    app: nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+        environment: production
+        release: beta
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app
+        ports:
+        - containerPort: 80
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-app03
+  labels:
+    app: nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+        environment: develop
+        release: stable
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app
+        ports:
+        - containerPort: 80
+```
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: label-app04
+  labels:
+    app: nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+        environment: production
+        release: stable
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app
+        ports:
+        - containerPort: 80
+```
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeselector-pod
+spec:
+  nodeSelector:
+    disk: ssd
+  containers:
+  - name: nodeselector-pod
+    image: takytaky/app
+    ports:
+    - containerPort: 80
+
+```
+
+* pod 기본
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  containers:
+  - image: takytaky/app:v1
+    name: app-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+```
+
+
+
+```
+root@master:~# kubectl get all
+NAME                                     READY   STATUS    RESTARTS   AGE
+pod/annotation-nodejs-7fddc5b788-d4vwl   1/1     Running   0          18m
+pod/label-app01-84878f9646-vcp6p         1/1     Running   0          18m
+pod/label-app02-7fc7b7c9f6-xbv8p         1/1     Running   0          18m
+pod/label-app03-65489bd79c-lr854         1/1     Running   0          18m
+pod/label-app04-5cfd679cbc-jg9bn         1/1     Running   0          18m
+pod/nodeselector-pod                     0/1     Pending   0          18m
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   24h
+
+NAME                                READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/annotation-nodejs   1/1     1            1           18m
+deployment.apps/label-app01         1/1     1            1           18m
+deployment.apps/label-app02         1/1     1            1           18m
+deployment.apps/label-app03         1/1     1            1           18m
+deployment.apps/label-app04         1/1     1            1           18m
+
+NAME                                           DESIRED   CURRENT   READY   AGE
+replicaset.apps/annotation-nodejs-7fddc5b788   1         1         1       18m
+replicaset.apps/label-app01-84878f9646         1         1         1       18m
+replicaset.apps/label-app02-7fc7b7c9f6         1         1         1       18m
+replicaset.apps/label-app03-65489bd79c         1         1         1       18m
+replicaset.apps/label-app04-5cfd679cbc         1         1         1       18m
+
+```
+
+
+
+#### label  기준으로 검색
+
+```
+root@master:~/k8s_lab/label# kubectl get pods  -l  environment=production,release=stable --show-labels
+NAME                           READY   STATUS    RESTARTS   AGE   LABELS
+label-app04-5cfd679cbc-jg9bn   1/1     Running   0          20m   app=nodejs,environment=production,pod-template-hash=5cfd679cbc,release=stable
+
+```
+
+```
+root@master:~/k8s_lab/label# kubectl get pods -l "app=nodejs,enviroment notin (develop)" --show-labels
+NAME                                 READY   STATUS    RESTARTS   AGE   LABELS
+annotation-nodejs-7fddc5b788-d4vwl   1/1     Running   0          25m   app=nodejs,pod-template-hash=7fddc5b788
+label-app01-84878f9646-vcp6p         1/1     Running   0          25m   app=nodejs,environment=develop,pod-template-hash=84878f9646,release=beta
+label-app02-7fc7b7c9f6-xbv8p         1/1     Running   0          25m   app=nodejs,environment=production,pod-template-hash=7fc7b7c9f6,release=beta
+label-app03-65489bd79c-lr854         1/1     Running   0          25m   app=nodejs,environment=develop,pod-template-hash=65489bd79c,release=stable
+label-app04-5cfd679cbc-jg9bn         1/1     Running   0          25m   app=nodejs,environment=production,pod-template-hash=5cfd679cbc,release=stable
+```
+
+
+
+
+
+### selector 
+
+selector 이것도 뭔가 의미가 있는 것 같다. 스케쥴링 함에 있어서 동일하게 배포할 수 없기 때문에 뭔가 구분되는  worker 노드를 선택하는 기능이 필요하다고 생각한다. 
+
+#### node selector 생성 
+
+* worker1에 node label 설정한다. 
+* 그러면 node에 이런 속성 값이 있는 worker 노드에 배포되게 된다. 
+* 이런것을 생각 해 보면 특정한  리소스가  있는 worker node 만 선택적으로 기동하려고 할때 이런 기능을 사용해서 worker 노드를 선택해서 사용할 수 있을 것 같다.
+
+```
+root@master:~/k8s_lab/label# kubectl label nodes worker1 disk=ssd
+
+
+root@master:~/k8s_lab/label# kubectl get nodes --show-labels
+NAME      STATUS   ROLES                  AGE   VERSION   LABELS
+master    Ready    control-plane,master   24h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+worker1   Ready    <none>                 24h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,disk=ssd,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux
+worker2   Ready    <none>                 24h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker2,kubernetes.io/os=linux
+
+```
+
+* node selector가 있는 pod 이것이 이제서야 제대로 배포 되어서 기동된다.  
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nodeselector-pod
+spec:
+  nodeSelector:
+    disk: ssd
+  containers:
+  - name: nodeselector-pod
+    image: takytaky/app
+    ports:
+    - containerPort: 80
+```
+
+
+
+#### noded selector 제거
+
+```
+root@master:~/k8s_lab/label# kubectl label node worker1 disk-
+node/worker1 labeled
+
 ```
 
