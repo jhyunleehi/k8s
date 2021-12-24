@@ -2884,6 +2884,29 @@ kube-proxy-gwxxx                          1/1     Running   0          16h
 kube-scheduler-master                     1/1     Running   0          17h
 ````
 
+#### 
+
+```yaml
+root@master:~/k8s_lab/pod# cat app.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: app
+  labels:
+    app: app
+spec:
+  containers:
+  - image: takytaky/app:v1
+    name: app-container
+    ports:
+    - containerPort: 8080
+      protocol: TCP
+```
+
+
+
+
+
 
 
 #### 2. Controller
@@ -3049,9 +3072,9 @@ replicaset.apps/coredns-558bd4d5db                  2         2         2       
 
 ```
 
+#### 5. config
 
-
-##### kubectl config view
+kubectl config view
 
 ```
 root@master:~# kubectl  config view
@@ -3077,7 +3100,7 @@ users:
 
 ```
 
-##### kubectl config set-context
+kubectl config set-context
 
 ```
 root@master:~# kubectl config get-contexts
@@ -3102,9 +3125,15 @@ CURRENT   NAME                          CLUSTER      AUTHINFO           NAMESPAC
 
 
 
+#### 6. 관계
+
+![](img/kupa_0104.png)
 
 
-## Pod
+
+
+
+### Pod
 
 #### pod 
 
@@ -3686,9 +3715,9 @@ users:
 
 
 
-## Label & Selector
+### Label & Selector
 
-
+#### Label
 
 ```
 Every 0.2s: kubectl get pods --show-labels -A                                                                                                  master: Thu Dec 23 08:10:25 2021
@@ -3935,7 +3964,7 @@ label-app04-5cfd679cbc-jg9bn         1/1     Running   0          25m   app=node
 
 
 
-### selector 
+#### selector 
 
 selector 이것도 뭔가 의미가 있는 것 같다. 스케쥴링 함에 있어서 동일하게 배포할 수 없기 때문에 뭔가 구분되는  worker 노드를 선택하는 기능이 필요하다고 생각한다. 
 
@@ -3959,7 +3988,7 @@ worker2   Ready    <none>                 24h   v1.21.0   beta.kubernetes.io/arc
 
 * node selector가 있는 pod 이것이 이제서야 제대로 배포 되어서 기동된다.  
 
-```
+```yaml
 apiVersion: v1
 kind: Pod
 metadata:
@@ -3981,6 +4010,1003 @@ spec:
 ```
 root@master:~/k8s_lab/label# kubectl label node worker1 disk-
 node/worker1 labeled
+
+```
+
+### annotation
+
+```yaml
+root@master:~/k8s_lab/label# cat annotation.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: annotation-nodejs
+  labels:
+    app: nodejs
+  annotations:
+    manufacturer: "takytaky"
+    e-mail: "takytaky@example.com"
+    release-version: "v1"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+    spec:
+      containers:
+      - name: nodejs
+        image: takytaky/app:v1
+        ports:
+        - containerPort: 80
+
+```
+
+#### desscribe 로 상세 내용 
+
+```
+root@master:~/k8s_lab/label# kubectl describe  deployments.apps annotation-nodejs
+Name:                   annotation-nodejs
+Namespace:              default
+CreationTimestamp:      Thu, 23 Dec 2021 08:11:15 +0000
+Labels:                 app=nodejs
+Annotations:            deployment.kubernetes.io/revision: 1
+                        e-mail: takytaky@example.com
+                        manufacturer: takytaky
+                        release-version: v1
+Selector:               app=nodejs
+Replicas:               1 desired | 1 updated | 1 total | 1 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=nodejs
+  Containers:
+   nodejs:
+    Image:        takytaky/app:v1
+    Port:         80/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  <none>
+NewReplicaSet:   annotation-nodejs-7fddc5b788 (1/1 replicas created)
+Events:          <none>
+
+```
+
+
+
+```
+root@master:~/k8s_lab/label# kubectl describe pod  annotation-nodejs-7fddc5b788-d4vwl
+Name:         annotation-nodejs-7fddc5b788-d4vwl
+Namespace:    default
+Priority:     0
+Node:         worker2/192.168.137.103
+Start Time:   Thu, 23 Dec 2021 08:11:16 +0000
+Labels:       app=nodejs
+              pod-template-hash=7fddc5b788
+Annotations:  cni.projectcalico.org/containerID: d317bace1113e7670e9e186906ba79d619f766a52da0a6fc0a950ea532d01c17
+              cni.projectcalico.org/podIP: 172.16.189.69/32
+              cni.projectcalico.org/podIPs: 172.16.189.69/32
+Status:       Running
+IP:           172.16.189.69
+IPs:
+  IP:           172.16.189.69
+Controlled By:  ReplicaSet/annotation-nodejs-7fddc5b788   <<<<========
+Containers:
+  nodejs:
+    Container ID:   docker://a5b8c3d4dd1d134a4179db7cd9f8815e916b597e3f27d85391e9494d4fe52d21
+    Image:          takytaky/app:v1
+    Image ID:       docker-pullable://takytaky/app@sha256:2a9453758e8298117dc31fbb5063bc330e9af2b660a63a00cbbf495f19c9e627
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Thu, 23 Dec 2021 08:11:18 +0000
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-prb4b (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  kube-api-access-prb4b:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:                      <none>
+
+```
+
+
+
+### Controller
+
+#### replicaset
+
+```yaml
+root@master:~/k8s_lab/controller/replicaset# cat rs-nginx-label-1.yaml
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: rs-nginx-label  <<=======
+spec:
+  selector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - web
+      - nginx
+  template:
+    metadata:
+      name: web
+      labels:
+        app: web
+    spec:
+      containers:
+      - name: web
+        image: nginx
+        ports:
+        - containerPort: 80
+  replicas: 3
+
+```
+
+
+
+```
+root@master:~/k8s_lab/controller/replicaset# kubectl apply -f rs-nginx
+rs-nginx-label-1.yaml  rs-nginx-label-2.yaml  rs-nginx.yaml
+root@master:~/k8s_lab/controller/replicaset# kubectl apply -f rs-nginx-label-1.yaml
+replicaset.apps/rs-nginx-label created
+
+Every 0.2s: kubectl get all --show-labels                                                                                                      master: Fri Dec 24 00:48:07 2021
+
+NAME                       READY   STATUS    RESTARTS   AGE   LABELS
+pod/rs-nginx-label-bwrsf   1/1     Running   0          94s   app=web
+pod/rs-nginx-label-crkth   1/1     Running   0          94s   app=web
+pod/rs-nginx-label-wxb6b   1/1     Running   0          94s   app=web
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE   LABELS
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   40h   component=apiserver,provider=kubernetes
+
+NAME                             DESIRED   CURRENT   READY   AGE   LABELS
+replicaset.apps/rs-nginx-label   3         3         3       95s   <none>
+```
+
+
+
+* replicaset  삭제하면 pod도 같이 삭제 한다. 
+* 당연하겠지만  controller 설정을 유지하려고 하기 때문일 것 같다.
+
+```
+root@master:~/k8s_lab/controller/replicaset# kubectl delete replicaset.apps/rs-nginx
+replicaset.apps "rs-nginx" deleted
+root@master:~/k8s_lab/controller/replicaset# kubectl delete  replicaset.apps/rs-nginx-label
+replicaset.apps "rs-nginx-label" deleted
+
+```
+
+* yaml 기준으로 도 삭제된다. 
+
+```
+root@master:~/k8s_lab/controller/replicaset# kubectl delete -f rs-nginx.yaml
+Error from server (NotFound): error when deleting "rs-nginx.yaml": replicasets.apps "rs-nginx" not found
+
+```
+
+
+
+### deployment
+
+* scale in/out
+
+```
+root@master:~/k8s_lab/controller/deployment# cat deploy-nginx.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-nginx
+  labels:
+    app: deploy-nginx
+  annotations:
+    kubernetes.io/change-cause: version 1.17.0
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: deploy-nginx
+  template:
+    metadata:
+      labels:
+        app: deploy-nginx
+    spec:
+      containers:
+      - name: deploy-nginx
+        image: nginx:1.17.0
+        ports:
+        - containerPort: 80
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment# kubectl apply -f deploy-nginx.yaml
+deployment.apps/deploy-nginx created
+root@master:~/k8s_lab/controller/deployment# kubectl scale deployment deploy-nginx --replicas=5
+deployment.apps/deploy-nginx scaled
+root@master:~/k8s_lab/controller/deployment#
+```
+
+
+
+```
+Every 0.2s: kubectl get all --show-labels                                                                                                      master: Fri Dec 24 02:20:55 2021
+
+NAME                                READY   STATUS    RESTARTS   AGE   LABELS
+pod/deploy-nginx-5c5dc7b4f8-dv256   1/1     Running   0          19s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-g76vt   1/1     Running   0          69s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-h2s4r   1/1     Running   0          69s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-xgrrv   1/1     Running   0          69s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-zh76h   1/1     Running   0          19s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE   LABELS
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   42h   component=apiserver,provider=kubernetes
+
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE   LABELS
+deployment.apps/deploy-nginx   5/5     5            5           69s   app=deploy-nginx
+
+NAME                                      DESIRED   CURRENT   READY   AGE   LABELS
+replicaset.apps/deploy-nginx-5c5dc7b4f8   5         5         5       69s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+```
+
+
+
+#### rollout
+
+* container image upgrade
+
+```
+root@master:~/k8s_lab/controller/deployment# kubectl set image deployment.apps/deploy-nginx deploy-nginx=nginx:1.16.0
+
+```
+
+* replicaset이 2개가 생기면서 container 이미지를 업데이트 하게 된다.
+
+```
+Every 0.2s: kubectl get all --show-labels                                                                                                      master: Fri Dec 24 02:28:22 2021
+
+NAME                                READY   STATUS              RESTARTS   AGE     LABELS
+pod/deploy-nginx-5c5dc7b4f8-dv256   0/1     Terminating         0          7m46s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-g76vt   1/1     Running             0          8m36s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-5c5dc7b4f8-h2s4r   1/1     Running             0          8m36s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+pod/deploy-nginx-7967dc5985-85cdn   1/1     Running             0          13s     app=deploy-nginx,pod-template-hash=7967dc5985
+pod/deploy-nginx-7967dc5985-mcdkv   0/1     ContainerCreating   0          2s      app=deploy-nginx,pod-template-hash=7967dc5985
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE   LABELS
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   42h   component=apiserver,provider=kubernetes
+
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE     LABELS
+deployment.apps/deploy-nginx   3/3     2            3           8m36s   app=deploy-nginx
+
+NAME                                      DESIRED   CURRENT   READY   AGE     LABELS
+replicaset.apps/deploy-nginx-5c5dc7b4f8   2         2         2       8m36s   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+replicaset.apps/deploy-nginx-7967dc5985   2         2         1       13s     app=deploy-nginx,pod-template-hash=7967dc5985
+
+```
+
+* container 변경 상태 확인... pod 이름은 지정하는 것이 아니라... delpoyment와 replicaset를 이용하여 자동으로 부여된다. 
+
+```
+root@master:~/k8s_lab/controller/deployment# kubectl get  pod/deploy-nginx-7967dc5985-7q5wk -o yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    cni.projectcalico.org/containerID: 487efdd097cf439ba45d0628b3d3c9aced9976fc23ff3d6592333452b9d41ae1
+    cni.projectcalico.org/podIP: 172.16.189.77/32
+    cni.projectcalico.org/podIPs: 172.16.189.77/32
+  creationTimestamp: "2021-12-24T02:28:32Z"
+  generateName: deploy-nginx-7967dc5985-
+  labels:
+    app: deploy-nginx
+    pod-template-hash: 7967dc5985
+  name: deploy-nginx-7967dc5985-7q5wk  <===== pod의 이름은 template를 이용해서 제공된다는 것을 기억하자...
+  namespace: default
+  ownerReferences:
+  - apiVersion: apps/v1
+    blockOwnerDeletion: true
+    controller: true
+    kind: ReplicaSet
+    name: deploy-nginx-7967dc5985
+    uid: 499c96b4-30be-481e-844d-74b09522f02a
+  resourceVersion: "216398"
+  uid: 31f9f607-99fa-423a-805a-ec9cc2475d6d
+spec:
+  containers:
+  - image: nginx:1.16.0  <<====== 컨테이너 이미지가 변경되었음을 알수 있다.  
+    imagePullPolicy: IfNotPresent
+    name: deploy-nginx
+    ports:
+    - containerPort: 80
+      protocol: TCP
+    resources: {}
+    terminationMessagePath: /dev/termination-log
+    terminationMessagePolicy: File
+    volumeMounts:
+    - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+      name: kube-api-access-v9cl7
+      readOnly: true
+...
+```
+
+
+
+#### deployment 수정
+
+* runtime 에 deployment가 수정된다.
+
+```
+root@master:~/k8s_lab/controller/deployment# kubectl edit  deployment.apps/deploy-nginx
+deployment.apps/deploy-nginx edited
+
+```
+
+* deployment를 이용해서 pod의 container 이미지 가 변경되었다.  
+
+```
+Every 0.2s: kubectl get all --show-labels                                                                                                      master: Fri Dec 24 02:41:24 2021
+
+NAME                                READY   STATUS              RESTARTS   AGE   LABELS
+pod/deploy-nginx-6f69f97599-b9v52   1/1     Running             0          49s   app=deploy-nginx,pod-template-hash=6f69f97599
+pod/deploy-nginx-6f69f97599-cbhgq   0/1     ContainerCreating   0          6s    app=deploy-nginx,pod-template-hash=6f69f97599
+pod/deploy-nginx-7967dc5985-7q5wk   0/1     Terminating         0          12m   app=deploy-nginx,pod-template-hash=7967dc5985
+pod/deploy-nginx-7967dc5985-85cdn   1/1     Running             0          13m   app=deploy-nginx,pod-template-hash=7967dc5985
+pod/deploy-nginx-7967dc5985-mcdkv   1/1     Running             0          13m   app=deploy-nginx,pod-template-hash=7967dc5985
+
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE   LABELS
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   42h   component=apiserver,provider=kubernetes
+
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE   LABELS
+deployment.apps/deploy-nginx   3/3     2            3           21m   app=deploy-nginx
+
+NAME                                      DESIRED   CURRENT   READY   AGE   LABELS
+replicaset.apps/deploy-nginx-5c5dc7b4f8   0         0         0       21m   app=deploy-nginx,pod-template-hash=5c5dc7b4f8
+replicaset.apps/deploy-nginx-6f69f97599   2         2         1       49s   app=deploy-nginx,pod-template-hash=6f69f97599
+replicaset.apps/deploy-nginx-7967dc5985   2         2         2       13m   app=deploy-nginx,pod-template-hash=7967dc5985
+```
+
+* container 이미지가 변경되었음을 확인할 수 있다.  
+
+```
+root@master:~/k8s_lab/controller/deployment# kubectl describe deployment.apps/deploy-nginx
+Name:                   deploy-nginx
+Namespace:              default
+CreationTimestamp:      Fri, 24 Dec 2021 02:19:46 +0000
+Labels:                 app=deploy-nginx
+Annotations:            deployment.kubernetes.io/revision: 3
+                        kubernetes.io/change-cause: version 1.17.0
+Selector:               app=deploy-nginx
+Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  25% max unavailable, 25% max surge
+Pod Template:
+  Labels:  app=deploy-nginx
+  Containers:
+   deploy-nginx:
+    Image:        nginx:1.18.0
+    Port:         80/TCP
+    Host Port:    0/TCP
+    Environment:  <none>
+    Mounts:       <none>
+  Volumes:        <none>
+Conditions:
+
+```
+
+
+
+#### docker와 pod 관계
+
+* docker 는 runtime 엔진이 맞는다. 하지만 이것으로 k8s의 기능을 모두 수용할 수가 없다.
+* 그래서  Pod 기능을 수행하는 "pause"라고 하는 컨테이너를 한개 기동하게 되는데 왜 이름이 이렇게 되어 있는지 모르겠다. 아~~~ 아무것 도 수행하지 않고 그냥 멈춰 있으면서 설정값만 유지 한다는 뜻인가?
+* 그런 의미로 해서 pause container가 한개 기동되는 것인가? 아무튼  pod가 기동되면 실제 서비스용 container도 기동되지만 필요한 Pod  컨테이너도 "pause" 이미지로 기동된다는 것을 기억하자.
+
+````
+root@worker1:~# docker ps
+CONTAINER ID   IMAGE                    COMMAND                  CREATED         STATUS         PORTS     NAMES
+278ba5b1f486   nginx                    "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes             k8s_deploy-nginx_deploy-nginx-6f69f97599-b9v52_default_64db5211-c41a-48d1-895e-810a83038d17_0
+76df2830788e   k8s.gcr.io/pause:3.4.1   "/pause"                 2 minutes ago   Up 2 minutes             k8s_POD_deploy-nginx-6f69f97599-b9v52_default_64db5211-c41a-48d1-895e-810a83038d17_0
+````
+
+
+
+#### deploy --record
+
+```
+root@master:~/k8s_lab/controller/deployment# kubectl set image deployment./deploy-nginx deploy-nginx=nginx:1.20.0 --record
+deployment.apps/deploy-nginx image updated
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment#
+root@master:~/k8s_lab/controller/deployment# kubectl rollout history deployment deploy-nginx                deployment.apps/deploy-nginx
+REVISION  CHANGE-CAUSE
+1         version 1.17.0
+2         version 1.17.0
+3         version 1.17.0
+4         kubectl set image deployment./deploy-nginx deploy-nginx=nginx:1.20.0 --record=true
+```
+
+
+
+### DaemonSet
+
+* 여기서 보면 node selector에 따라서 선택하도록 되어 있다. 
+* 아무튼 daemonset으로 올리면 모든  worker node에 각각 pod가 실행된다는 것이다. 
+
+```
+root@worker1:~# kubectl get daemonsets.apps -A
+NAMESPACE     NAME          DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR            AGE
+kube-system   calico-node   3         3         3       3            3           kubernetes.io/os=linux   44h
+kube-system   kube-proxy    3         3         3       3            3           kubernetes.io/os=linux   45h
+```
+
+
+
+```
+root@worker1:~# kubectl get nodes --show-labels
+NAME      STATUS   ROLES                  AGE   VERSION   LABELS
+master    Ready    control-plane,master   45h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=master,kubernetes.io/os=linux,node-role.kubernetes.io/control-plane=,node-role.kubernetes.io/master=,node.kubernetes.io/exclude-from-external-load-balancers=
+worker1   Ready    <none>                 44h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker1,kubernetes.io/os=linux
+worker2   Ready    <none>                 44h   v1.21.0   beta.kubernetes.io/arch=amd64,beta.kubernetes.io/os=linux,kubernetes.io/arch=amd64,kubernetes.io/hostname=worker2,kubernetes.io/os=linux
+
+```
+
+
+
+
+
+```
+root@master:~/k8s_lab/controller/daemonset# cat daemonset-app.yaml
+apiVersion: apps/v1
+kind: DaemonSet   <<=======
+metadata:
+  name: daemonset-app
+  labels:
+    k8s-app: daemonset-app
+spec:
+  selector:
+    matchLabels:
+      name: daemonset-app    <<<====
+  updateStrategy:
+    type: RollingUpdate   <<=======
+  template:
+    metadata:
+      labels:
+        name: daemonset-app  <<======
+    spec:
+      tolerations:
+      # this toleration is to have the daemonset runnable on master nodes
+      # remove it if your masters can't run pods
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      containers:
+      - name: daemonset-app
+        image: takytaky/app:v1
+        env:
+        - name: appenv
+          value: daemonset
+
+```
+
+
+
+```
+root@master:~/k8s_lab/controller/daemonset# kubectl set image daemonset daemonset-app daemonset-app=takytaky/app:v2.0
+daemonset.apps/daemonset-app image updated
+
+```
+
+
+
+```
+root@master:~/k8s_lab/controller/daemonset# kubectl rollout history  daemonset.apps/daemonset-app
+daemonset.apps/daemonset-app
+REVISION  CHANGE-CAUSE
+1         <none>
+2         <none>
+3         <none>
+
+root@master:~/k8s_lab/controller/daemonset# kubectl rollout undo daemonset.apps/daemonset-app
+daemonset.apps/daemonset-app rolled back
+
+```
+
+
+
+
+
+
+
+### Service
+
+#### Cluster IP 
+
+##### deploy 2 pod
+
+```yaml
+root@master:~/k8s_lab/service# cat hostname-server.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hostname-server
+  labels:
+    app: hostname-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hostname-server
+  template:
+    metadata:
+      labels:
+        app: hostname-server
+    spec:
+      containers:
+      - name: hostname-server
+        image: takytaky/hostname
+        ports:
+        - containerPort: 80
+
+root@master:~/k8s_lab/service# cat clusterip-hostname.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: clusterip-hostname-service
+spec:
+  type: ClusterIP
+  selector:
+    app: hostname-server
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80
+```
+
+
+
+```yaml
+Every 0.2s: kubectl get svc,deploy,pod -o wide --show-labels                                                                            master: Fri Dec 24 06:31:31 2021
+
+NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE     SELECTOR              LABELS
+service/clusterip-hostname-service   ClusterIP   10.111.45.244   <none>        8080/TCP   4m24s   app=hostname-server   <none>
+service/kubernetes                   ClusterIP   10.96.0.1       <none>        443/TCP    46h     <none>                component=apiserver,provider=kubernetes
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS        IMAGES              SELECTOR              LABELS
+deployment.apps/hostname-server   2/2     2            2           5m47s   hostname-server   takytaky/hostname   app=hostname-server   app=hostname-server
+
+NAME                                   READY   STATUS    RESTARTS   AGE     IP               NODE      NOMINATED NODE   READINESS GATES   LABELS
+pod/hostname-server-7c85cc96dc-jph6c   1/1     Running   0          5m47s   172.16.235.155   worker1   <none>           <none>            app=hostname-server,pod-templa
+te-hash=7c85cc96dc
+pod/hostname-server-7c85cc96dc-wnqj4   1/1     Running   0          5m47s   172.16.189.86    worker2   <none>           <none>            app=hostname-server,pod-templa
+te-hash=7c85cc96dc
+
+```
+
+
+
+```yaml
+root@master:~/k8s_lab/service# kubectl describe  service/clusterip-hostname-service
+Name:              clusterip-hostname-service
+Namespace:         default
+Labels:            <none>
+Annotations:       <none>
+Selector:          app=hostname-server
+Type:              ClusterIP
+IP Family Policy:  SingleStack
+IP Families:       IPv4
+IP:                10.111.45.244
+IPs:               10.111.45.244
+Port:              <unset>  8080/TCP
+TargetPort:        80/TCP
+Endpoints:         172.16.189.86:80,172.16.235.155:80   <<<====== 
+Session Affinity:  None
+Events:            <none>
+
+
+```
+
+
+
+#####  cluster IP 로  curl  호출
+
+```sh
+root@master:~/k8s_lab/service# for i in $(seq 10); do curl -s 10.111.45.244:8080; done | grep Hello
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-jph6c</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-jph6c</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-jph6c</p> </blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+```
+
+#### Node Port
+
+```
+root@master:~/k8s_lab/service# cat nodeport.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodeport-hostname-service
+spec:
+  type: NodePort
+  selector:
+    app: hostname-server
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80
+    nodePort: 30080  <<====
+root@master:~/k8s_lab/service# kubectl apply -f nodeport.yaml
+service/nodeport-hostname-service created
+```
+
+* node port는 외부에서 연결성을 제공한다. 
+* node port  접속하면 내부적으로는  clusterIP 통해서  Pod와 접속하게 된다.  
+
+```
+Every 0.2s: kubectl get svc,deploy,pod -o wide --show-labels                                                                            master: Fri Dec 24 06:48:18 2021
+
+NAME                                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE   SELECTOR              LABELS
+service/clusterip-hostname-service   ClusterIP   10.111.45.244   <none>        8080/TCP         21m   app=hostname-server   <none>
+service/kubernetes                   ClusterIP   10.96.0.1       <none>        443/TCP          46h   <none>                component=apiserver,provider=kubernetes
+service/nodeport-hostname-service    NodePort    10.97.203.116   <none>        8080:30080/TCP   39s   app=hostname-server   <none>
+
+NAME                              READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS        IMAGES              SELECTOR              LABELS
+deployment.apps/hostname-server   2/2     2            2           22m   hostname-server   takytaky/hostname   app=hostname-server   app=hostname-server
+
+NAME                                   READY   STATUS    RESTARTS   AGE   IP               NODE      NOMINATED NODE   READINESS GATES   LABELS
+pod/hostname-server-7c85cc96dc-jph6c   1/1     Running   0          22m   172.16.235.155   worker1   <none>           <none>            app=hostname-server,pod-template
+-hash=7c85cc96dc
+pod/hostname-server-7c85cc96dc-wnqj4   1/1     Running   0          22m   172.16.189.86    worker2   <none>           <none>            app=hostname-server,pod-template
+-hash=7c85cc96dc
+
+```
+
+* cluster 바깥에서  node port에 대해서 접속 테스트...
+
+```sh
+C:\Windows\system32>curl -s 192.168.137.101:30080
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="stylesheet" type="text/css" href="./css/login.css" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
+<div class="form-signin">
+        <blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+</div>
+
+C:\Windows\system32>curl -s 192.168.137.102:30080
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="stylesheet" type="text/css" href="./css/login.css" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
+<div class="form-signin">
+        <blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-wnqj4</p> </blockquote>
+</div>
+
+C:\Windows\system32>curl -s 192.168.137.103:30080
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<link rel="stylesheet" type="text/css" href="./css/login.css" />
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+
+<div class="form-signin">
+        <blockquote>
+        <p>Hello,  hostname-server-7c85cc96dc-jph6c</p> </blockquote>
+</div>
+```
+
+
+
+#### iptables
+
+* 패킷 전달되는 것은 결국  iptables에 따라서 jump 하도록 설정되어 있다.  
+
+```sh
+root@master:~/k8s_lab/service# iptables -t nat -S  | grep  hostname
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/nodeport-hostname-service" -m tcp --dport 30080 -j KUBE-MARK-MASQ
+-A KUBE-NODEPORTS -p tcp -m comment --comment "default/nodeport-hostname-service" -m tcp --dport 30080 -j KUBE-SVC-UGOXF7AU4SQKUFM5
+-A KUBE-SEP-6LCTVZ3KWOSA2PNN -s 172.16.235.155/32 -m comment --comment "default/nodeport-hostname-service" -j KUBE-MARK-MASQ
+-A KUBE-SEP-6LCTVZ3KWOSA2PNN -p tcp -m comment --comment "default/nodeport-hostname-service" -m tcp -j DNAT --to-destination 172.16.235.155:80
+-A KUBE-SEP-H72ZR355EJEW4GNE -s 172.16.235.155/32 -m comment --comment "default/clusterip-hostname-service" -j KUBE-MARK-MASQ
+-A KUBE-SEP-H72ZR355EJEW4GNE -p tcp -m comment --comment "default/clusterip-hostname-service" -m tcp -j DNAT --to-destination 172.16.235.155:80
+-A KUBE-SEP-JOH7X6MVLS7J65MF -s 172.16.189.86/32 -m comment --comment "default/clusterip-hostname-service" -j KUBE-MARK-MASQ
+-A KUBE-SEP-JOH7X6MVLS7J65MF -p tcp -m comment --comment "default/clusterip-hostname-service" -m tcp -j DNAT --to-destination 172.16.189.86:80
+-A KUBE-SEP-ZKG3WIANJLQPJ2S4 -s 172.16.189.86/32 -m comment --comment "default/nodeport-hostname-service" -j KUBE-MARK-MASQ
+-A KUBE-SEP-ZKG3WIANJLQPJ2S4 -p tcp -m comment --comment "default/nodeport-hostname-service" -m tcp -j DNAT --to-destination 172.16.189.86:80
+-A KUBE-SERVICES -d 10.111.45.244/32 -p tcp -m comment --comment "default/clusterip-hostname-service cluster IP" -m tcp --dport 8080 -j KUBE-SVC-OUYLQREKC6TK7Y6H
+-A KUBE-SERVICES -d 10.97.203.116/32 -p tcp -m comment --comment "default/nodeport-hostname-service cluster IP" -m tcp --dport 8080 -j KUBE-SVC-UGOXF7AU4SQKUFM5
+-A KUBE-SVC-OUYLQREKC6TK7Y6H -m comment --comment "default/clusterip-hostname-service" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-JOH7X6MVLS7J65MF
+-A KUBE-SVC-OUYLQREKC6TK7Y6H -m comment --comment "default/clusterip-hostname-service" -j KUBE-SEP-H72ZR355EJEW4GNE
+-A KUBE-SVC-UGOXF7AU4SQKUFM5 -m comment --comment "default/nodeport-hostname-service" -m statistic --mode random --probability 0.50000000000 -j KUBE-SEP-ZKG3WIANJLQPJ2S4
+-A KUBE-SVC-UGOXF7AU4SQKUFM5 -m comment --comment "default/nodeport-hostname-service" -j KUBE-SEP-6LCTVZ3KWOSA2PNN
+
+```
+
+
+
+### Deployment Strategies
+
+#### blue green 전략...
+
+* 여기서 selector만 변경하면 Service가 연결되는 application 이 자동으로 변경된다. 
+
+```
+root@master:~/k8s_lab/controller/deployment/deploy_blue_green# cat blue-green-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: blue-green-svc
+  name: blue-green-svc
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30880
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: deploy-blue   <<<======== 이것을 deploy-green 으로 수정하게 되면.... 두개의  pod 스위칭 가능....
+  type: NodePort
+
+```
+
+* Deployment : metadata.labels.app==deploy-green or  meatadata.label.app==deploy-blue
+
+```
+root@master:~/k8s_lab/controller/deployment/deploy_blue_green# cat deploy-green.yaml deploy-blue.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-green
+  labels:
+    app: deploy-green
+    release: stable
+  annotations:
+    kubernetes.io/change-cause: release green
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: deploy-green
+      release: stable
+  template:
+    metadata:
+      labels:
+        app: deploy-green
+        release: stable
+    spec:
+      containers:
+      - name: deploy-green
+        image: takytaky/web:green
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-blue
+  labels:
+    app: deploy-blue
+    release: stable
+  annotations:
+    kubernetes.io/change-cause: release blue
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: deploy-blue
+      release: stable
+  template:
+    metadata:
+      labels:
+        app: deploy-blue
+        release: stable
+    spec:
+      containers:
+      - name: deploy-blue
+        image: takytaky/web:blue
+        ports:
+        - containerPort: 80
+
+```
+
+
+
+* 뭔가 대단한 전략이라도 있는 것 처링 이야기 했는데 결국은 selector를 이용해서 선택하는 수준이다...
+
+  
+
+#### Canary 전략
+
+
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: blue-canary-svc
+  name: blue-canary-svc
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30880
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: webapp
+  type: NodePort
+```
+
+
+
+
+
+```
+root@master:~/k8s_lab/controller/deployment/deploy_canary# cat deploy-canary.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-canary
+  labels:
+    app: webapp
+    release: beta
+  annotations:
+    kubernetes.io/change-cause: release beta
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: webapp
+      release: beta
+  template:
+    metadata:
+      labels:
+        app: webapp
+        release: beta
+    spec:
+      containers:
+      - name: deploy-canary
+        image: takytaky/web:canary
+        ports:
+        - containerPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploy-blue
+  labels:
+    app: webapp
+    release: stable
+  annotations:
+    kubernetes.io/change-cause: release blue
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: webapp
+      release: stable
+  template:
+    metadata:
+      labels:
+        app: webapp
+        release: stable
+    spec:
+      containers:
+      - name: deploy-blue
+        image: takytaky/web:blue
+        ports:
+        - containerPort: 80
+
+```
+
+* blue와 canary가 번갈아 나온다. 
+
+```
+C:\Windows\system32>curl -s 192.168.137.101:30880
+<html>
+<body bgcolor=blue>
+<font size=40>
+        <p> This is BLUE Deployment. </p>
+</font size>
+</body color>
+</html>
+
+C:\Windows\system32>curl -s 192.168.137.101:30880
+<html>
+<body bgcolor=yellow>
+<font size=40>
+        <p> This is Canary Deployment. </p>
+</font size>
+</body color>
+</html>
+```
+
+
+
+*  selector 정보에서  release : beta 추가
+
+```
+root@master:~/k8s_lab/controller/deployment/deploy_canary# kubectl edit service/blue-canary-svc
+service/blue-canary-svc edited
+
+```
+
+```
+Every 0.2s: kubectl get svc,deploy,pod -o wide --show-labels                                                                          master: Fri Dec 24 07:54:11 2021
+
+NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE     SELECTOR                  LABELS
+service/blue-canary-svc   NodePort    10.103.56.247   <none>        80:30880/TCP   9m22s   app=webapp,release=beta   app=blue-canary-svc
+```
+
+
+
+* service 에서 selector를 stable로 변경한다.  
+
+```
+root@master:~/k8s_lab/controller/deployment/deploy_canary# kubectl edit service/blue-canary-svc
+service/blue-canary-svc edited
+```
+
+* 그러면 service에서 selector 가 변경되고 변경된 pod로 연결되어서 서비스 흐름이 변경된다. 
+* 서비스를 앞단에 기동하고... 이것의 연결 채널을 변경하는 방식이네.. 예전에는 L4에서 네크워크 엔지니어가 고도의 작업을 해서 변경했었는데 지금은 그냥 infras as a code로 그냥 쉽게 설정이나 서비스 운영 자체를 변경할 수 있도록 해주는 구나...
+
+```
+Every 0.2s: kubectl get svc,deploy,pod -o wide --show-labels                                                                          master: Fri Dec 24 07:55:10 2021
+
+NAME                      TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE   SELECTOR                    LABELS
+service/blue-canary-svc   NodePort    10.103.56.247   <none>        80:30880/TCP   10m   app=webapp,release=stable   app=blue-canary-svc
+service/kubernetes        ClusterIP   10.96.0.1       <none>        443/TCP        2d    <none>                      component=apiserver,provider=kubernetes
 
 ```
 
